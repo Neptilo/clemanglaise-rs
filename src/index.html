@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clemanglaise</title>
+  <link rel="stylesheet" href="clemanglaise.css">
+</head>
+<body>
+  <h1>Choose your vocab test:</h1>
+  
+  <div id="test-buttons-container">
+    <ul id="test-buttons"></ul>
+  </div>
+
+  <script>
+      const invoke = window.__TAURI__.core.invoke;
+      async function fetchVocabTests() {
+      try {
+        const tests = await invoke("fetch_vocab_tests");
+        
+        if (tests.length === 0) {
+          document.getElementById('test-buttons').innerHTML = "<p>No vocabulary lists available.</p>";
+        } else {
+          const testButtonsContainer = document.getElementById('test-buttons');
+          testButtonsContainer.innerHTML = ''; // Clear previous content
+          
+          tests.forEach(test => {
+            const li = document.createElement('li');
+            li.classList.add('tile');
+            const a = document.createElement('a');
+            a.classList.add('language-button');
+            a.href = `quiz.html?list_id=${test.id}`;
+            a.textContent = test.name;
+            li.appendChild(a);
+            testButtonsContainer.appendChild(li);
+            onresize();
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching vocabulary tests:", error);
+        document.getElementById('test-buttons').innerHTML = "<p>Error loading data.</p>";
+      }
+    }
+
+    window.onload = fetchVocabTests;
+  </script>
+  <script src="square_grid.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+@import "general.css";
+
+body {
+    margin: 0;
+    background-color: #37343b;
+    color: lavender;
+    padding-top: 0;
+    background-size: 0;
+}
+
+p {
+    background-color: rgba(0,0,0,0);
+}
+
+#test-buttons {
+    padding: 0;
+    list-style: none;
+    position: relative;
+    margin: 0;
+}
+
+.tile {
+    position: absolute;
+}
+
+.language-button {
+    background-color: #8DD242;
+    color: white;
+    text-align: center;
+    margin: 10px;
+    height: 80%;
+    width: 80%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.language-button:hover {
+    background-color: #8DD2D2;
+}
+
+#meaning {
+    float: left;
+}
+
+#input-row {
+    display: flex;
+    gap: 8px;
+}
+
+#input {
+    flex: 1;
+    font-size: 2em;
+    text-align: center;
+}
+
+.ok-button {
+    font-size: 1.5em;
+    background-color: #548c18;
+    border: none;
+    color: white;
+    padding: 16px;
+    border-radius: 8px;
+}
+
+h1, h2, p, ul {
+    background-color: transparent;
+}
