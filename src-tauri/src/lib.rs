@@ -12,8 +12,6 @@ pub struct Test {
 #[tauri::command]
 async fn fetch_vocab_tests() -> Result<Vec<Test>, String> {
     let client = reqwest::Client::builder()
-        // TODO: Only in dev!!!
-        .danger_accept_invalid_certs(true)  // Disable SSL validation
         .build()
         .map_err(|e| e.to_string())?;
     
