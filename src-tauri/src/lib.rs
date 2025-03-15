@@ -1,4 +1,6 @@
-use serde::{Deserialize, Serialize}; 
+use rusqlite::{params, Connection, Result as SqlResult};
+use serde::{Deserialize, Serialize};
+use reqwest::Client;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Test {
@@ -10,29 +12,66 @@ pub struct Test {
 }
 
 #[tauri::command]
-async fn fetch_vocab_tests() -> Result<Vec<Test>, String> {
-    let client = reqwest::Client::builder()
-        .build()
-        .map_err(|e| e.to_string())?;
-    
-    let url = "https://localhost/php/clemanglaise/get_lists.php";
+async fn fetch_vocab_tests(remote: bool) -> Result<Vec<Test>, String> {
+    if remote {
+        // Fetch vocab lists from the remote server
+        let client = Client::new();
+        let url = "https://localhost/php/clemanglaise/get_lists.php";
 
-    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
-    let body = response.text().await.map_err(|e| e.to_string())?;
+        match client.get(url).send().await {
+            Ok(response) => match response.text().await {
+                Ok(body) => {
+                    let lines: Vec<&str> = body.trim().split('\n').collect();
+                    let mut tests = Vec::new();
 
-    let lines: Vec<&str> = body.trim().split('\n').collect();
+                    for chunk in lines.chunks(5) {
+                        if chunk.len() == 5 {
+                            let test = Test {
+                                id: chunk[0].parse().unwrap_or(0),
+                                name: chunk[1].to_string(),
+                                src: chunk[2].to_string(),
+                                dst: chunk[3].to_string(),
+                                flag: chunk[4].to_string(),
+                            };
+                            tests.push(test);
+                        }
+                    }
+
+                    Ok(tests)
+                }
+                Err(e) => Err(format!("Error reading server response: {}", e)),
+            },
+            Err(e) => Err(format!("Error sending request: {}", e)),
+        }
+    } else {
+        // Fetch vocab lists from the local SQLite database
+        match fetch_vocab_tests_from_db() {
+            Ok(tests) => Ok(tests),
+            Err(e) => Err(format!("Error accessing local database: {}", e)),
+        }
+    }
+}
+
+// Helper function to fetch vocab tests from the local database (SQLite)
+fn fetch_vocab_tests_from_db() -> SqlResult<Vec<Test>> {
+    let conn = Connection::open("clemanglaise.db")?;
+
+    let mut stmt = conn.prepare("SELECT id, name, src, dst, flag FROM clemanglaise_lists")?;
+    let test_iter = stmt.query_map(params![], |row| {
+        Ok(Test {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            src: row.get(2)?,
+            dst: row.get(3)?,
+            flag: row.get(4)?,
+        })
+    })?;
+
     let mut tests = Vec::new();
-
-    for chunk in lines.chunks(5) {
-        if chunk.len() == 5 {
-            let test = Test {
-                id: chunk[0].parse().unwrap_or(0),
-                name: chunk[1].to_string(),
-                src: chunk[2].to_string(),
-                dst: chunk[3].to_string(),
-                flag: chunk[4].to_string(),
-            };
-            tests.push(test);
+    for test in test_iter {
+        match test {
+            Ok(t) => tests.push(t),
+            Err(e) => return Err(e),
         }
     }
 

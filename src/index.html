@@ -5,19 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Clemanglaise</title>
   <link rel="stylesheet" href="clemanglaise.css">
+  <link rel="stylesheet" href="switch.css">
 </head>
 <body>
   <h1>Choose your vocab test:</h1>
-  
+  <div class="switch-container">
+    <span>Offline</span>
+    <label class="switch">
+        <input type="checkbox" id="mode-switch" checked>
+        <span class="slider"></span>
+    </label>
+    <span>Online</span>
+  </div>
   <div id="test-buttons-container">
     <ul id="test-buttons"></ul>
   </div>
 
   <script>
       const invoke = window.__TAURI__.core.invoke;
-      async function fetchVocabTests() {
+      async function fetchVocabTests(remote) {
       try {
-        const tests = await invoke("fetch_vocab_tests");
+        const tests = await invoke("fetch_vocab_tests", { remote });
         
         if (tests.length === 0) {
           document.getElementById('test-buttons').innerHTML = "<p>No vocabulary lists available.</p>";
@@ -43,7 +51,10 @@
       }
     }
 
-    window.onload = fetchVocabTests;
+    const modeSwitch = document.getElementById('mode-switch');
+    modeSwitch.addEventListener('change',
+        () => fetchVocabTests(modeSwitch.checked));
+    window.onload = () => fetchVocabTests(true);
   </script>
   <script src="square_grid.js"></script>
 </body>
