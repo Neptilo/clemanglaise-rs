@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clemanglaise</title>
+  <link rel="stylesheet" href="clemanglaise.css">
+</head>
+<body>
+  <p>Translate: <b class="word"></b> into {target language}.</p>
+  <p><em id="hint"></em></p>
+  <div id="input-row">
+    <input type="text" id="input" required>
+    <button class="ok-button" id="validate-question-button">OK</button>
+  </div>
+  <div id="answer" hidden>
+    <h2 id="meaning"></h2>
+    <p id="message"></p>
+    <p>
+      <b class="word"></b><em id="part-of-speech"></em>:<b id="pronunciation"></b>
+    </p>
+    <p><em id="comment"></em></p>
+    <p><em id="example"></em></p>
+    <button class="ok-button" id="validate-answer-button">OK</button>
+  </div>
+  <script src="quiz.js"></script>
+</body>
+</html>
