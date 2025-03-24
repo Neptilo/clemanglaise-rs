@@ -54,9 +54,9 @@ async fn fetch_vocab_tests(remote: bool) -> Result<Vec<Test>, String> {
 
 // Helper function to fetch vocab tests from the local database (SQLite)
 fn fetch_vocab_tests_from_db() -> SqlResult<Vec<Test>> {
-    let conn = Connection::open("clemanglaise.db")?;
+    let conn = Connection::open("clemanglaise.sqlite")?;
 
-    let mut stmt = conn.prepare("SELECT id, name, src, dst, flag FROM clemanglaise_lists")?;
+    let mut stmt = conn.prepare("SELECT id, name, src, dst, flag FROM lists")?;
     let test_iter = stmt.query_map(params![], |row| {
         Ok(Test {
             id: row.get(0)?,
