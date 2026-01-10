@@ -1,3 +1,17 @@
+// Load language_utils.js and populate target language name
+const script = document.createElement('script');
+script.src = 'language_utils.js';
+script.onload = () => {
+    const targetLanguageElem = document.getElementById('target-language');
+    if (targetLanguageElem) {
+        const dstCode = getUrlParameter('dst');
+        if (dstCode) {
+            targetLanguageElem.textContent = getLanguageName(dstCode);
+        }
+    }
+};
+document.head.appendChild(script);
+
 // get constant DOM elements
 const wordElems = document.getElementsByClassName('word')
 const partOfSpeechElem = document.getElementById('part-of-speech')
