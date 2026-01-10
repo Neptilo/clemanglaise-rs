@@ -1,15 +1,35 @@
 @import "general.css";
 
-body {
-    margin: 0;
-    background-color: #37343b;
-    color: lavender;
-    padding-top: 0;
-    background-size: 0;
+/* Support both light and dark UI for built-in controls */
+:root {
+    color-scheme: light dark;
+    /* Light mode defaults */
+    --bg-color: #ffffff;
+    --text-color: #111111;
+    --tile-bg: #8DD242;
+    --bg-hover: #8DD2D2;
+    --ok-bg: #548c18;
 }
 
-p {
-    background-color: rgba(0,0,0,0);
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #37343b;
+        --text-color: lavender;
+    }
+}
+
+/* Base page colors derived from scheme */
+body {
+    margin: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* Neutralize backgrounds and shadows coming from general.css */
+h1, h2, p, ul {
+    background-color: transparent;
+    box-shadow: none;
 }
 
 #test-buttons {
@@ -24,8 +44,8 @@ p {
 }
 
 .language-button {
-    background-color: #8DD242;
-    color: white;
+    background-color: var(--tile-bg);
+    color: black;
     text-align: center;
     margin: 10px;
     height: 80%;
@@ -36,7 +56,7 @@ p {
 }
 
 .language-button:hover {
-    background-color: #8DD2D2;
+    background-color: var(--bg-hover);
 }
 
 #meaning {
@@ -56,13 +76,13 @@ p {
 
 .ok-button {
     font-size: 1.5em;
-    background-color: #548c18;
+    background-color: var(--ok-bg);
     border: none;
     color: white;
     padding: 16px;
     border-radius: 8px;
 }
 
-h1, h2, p, ul {
-    background-color: transparent;
+.ok-button:hover {
+    background-color: var(--bg-hover);
 }
