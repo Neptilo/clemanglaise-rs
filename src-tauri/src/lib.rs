@@ -2,6 +2,8 @@ use rusqlite::{params, Connection, Result as SqlResult};
 use serde::{Deserialize, Serialize};
 use reqwest::Client;
 
+mod auth;
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Test {
     id: i32,
@@ -78,10 +80,17 @@ fn fetch_vocab_tests_from_db() -> SqlResult<Vec<Test>> {
     Ok(tests)
 }
 
+// ==================== Tauri App Initialization ====================
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![fetch_vocab_tests])
+        .invoke_handler(tauri::generate_handler![
+            fetch_vocab_tests,
+            auth::auth_login,
+            auth::auth_status,
+            auth::auth_logout
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

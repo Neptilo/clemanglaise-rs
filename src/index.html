@@ -6,8 +6,12 @@
   <title>Clemanglaise</title>
   <link rel="stylesheet" href="clemanglaise.css">
   <link rel="stylesheet" href="switch.css">
+  <link rel="stylesheet" href="common/login-corner.css">
 </head>
 <body>
+  <!-- Login corner in top-right -->
+  <div id="login-corner"></div>
+
   <h1>Choose your vocab test:</h1>
   <div class="switch-container">
     <span>Offline</span>
@@ -21,7 +25,9 @@
     <ul id="test-buttons"></ul>
   </div>
 
-  <script src="common.js"></script>
+  <script src="common/render-vocab-tests.js"></script>
+  <script src="common/auth.js"></script>
+  <script src="common/login-corner.js"></script>
   <script>
       const invoke = window.__TAURI__.core.invoke;
       async function fetchVocabTests(remote) {

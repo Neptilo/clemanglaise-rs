@@ -11,4 +11,7 @@
 To build and run the app during development, use `tauri dev`
 This will open the app and let you debug it.
 
+To run a release build during development (without building installers), use `tauri dev --release`
+
 To build and run the app for production, use `tauri build`
+This creates installer files (NSIS, WiX) and a standalone executable at `src-tauri/target/release/app.exe` that you can run directly.

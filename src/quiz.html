@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Clemanglaise</title>
   <link rel="stylesheet" href="clemanglaise.css">
+  <link rel="stylesheet" href="common/login-corner.css">
 </head>
 <body>
+  <!-- Login corner in top-right -->
+  <div id="login-corner"></div>
   <p>Translate: <b class="word"></b> into <span id="target-language"></span>.</p>
   <p><em id="hint"></em></p>
   <div id="input-row">
@@ -23,6 +26,8 @@
     <p><em id="example"></em></p>
     <button class="ok-button" id="validate-answer-button">OK</button>
   </div>
+  <script src="common/auth.js"></script>
+  <script src="common/login-corner.js"></script>
   <script src="quiz.js"></script>
 </body>
 </html>
