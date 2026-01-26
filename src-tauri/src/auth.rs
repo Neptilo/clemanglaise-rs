@@ -31,12 +31,12 @@ pub fn get_http_client() -> std::sync::MutexGuard<'static, Client> {
 }
 
 /**
- * Tauri command: Log in to the PHP auth endpoint.
+ * Tauri command: Log in to the JSON auth API endpoint.
  * Maintains a persistent client that stores cookies for subsequent requests.
  */
 #[tauri::command]
 pub async fn auth_login(username: String, password: String) -> Result<AuthResponse, String> {
-    let url = "https://localhost/php/login.php?action=login";
+    let url = "https://localhost/php/login-api.php?action=login";
 
     // Build form data - PHP expects specific field names
     let params = [
@@ -50,73 +50,21 @@ pub async fn auth_login(username: String, password: String) -> Result<AuthRespon
         client.post(url).form(&params).send()
     };
     
-    let response = response.await;
+    let response = response.await
+        .map_err(|e| format!("Error sending request: {}", e))?;
 
-    match response {
-        Ok(response) => {
-            match response.text().await {
-                Ok(body) => {                    
-                    // Simple check: if response contains the username in a greeting, login succeeded
-                    if body.contains(&format!("Hello <strong>{}</strong>", username)) {
-                        // Store logged-in user
-                        if let Ok(mut user) = LOGGED_IN_USER.lock() {
-                            *user = Some(username.clone());
-                        }
-                        Ok(AuthResponse {
-                            success: true,
-                            message: format!("Logged in as {}", username),
-                        })
-                    } else {
-                        // Always try to extract the actual error message from PHP response
-                        let mut message = "Login failed".to_string();
-                        
-                        // Search for the login div (may have additional classes)
-                        if let Some(start_pos) = body.find("<div id=\"login\"") {
-                            // Find the end of the opening tag
-                            if let Some(tag_close) = body[start_pos..].find('>') {
-                                let content_start = start_pos + tag_close + 1;
-                                
-                                // Find the end of the first text block (before <br/> or </div>)
-                                if let Some(br_pos) = body[content_start..].find("<br") {
-                                    let text_block = &body[content_start..content_start + br_pos];
-                                    
-                                    // Remove all HTML tags to get plain text
-                                    let mut plain_text = String::new();
-                                    let mut in_tag = false;
-                                    
-                                    for ch in text_block.chars() {
-                                        if ch == '<' {
-                                            in_tag = true;
-                                        } else if ch == '>' {
-                                            in_tag = false;
-                                        } else if !in_tag {
-                                            plain_text.push(ch);
-                                        }
-                                    }
-                                    
-                                    let plain_text = plain_text.trim();
-                                    if !plain_text.is_empty() {
-                                        // Extract up to first period if present
-                                        if let Some(period_pos) = plain_text.find('.') {
-                                            message = plain_text[..period_pos + 1].to_string();
-                                        } else {
-                                            message = plain_text.to_string();
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        Ok(AuthResponse {
-                            success: false,
-                            message,
-                        })
-                    }
+    // Parse JSON response
+    match response.json::<AuthResponse>().await {
+        Ok(auth_response) => {
+            if auth_response.success {
+                // Store logged-in user
+                if let Ok(mut user) = LOGGED_IN_USER.lock() {
+                    *user = Some(username.clone());
                 }
-                Err(e) => Err(format!("Error reading response: {}", e)),
             }
+            Ok(auth_response)
         }
-        Err(e) => Err(format!("Error sending request: {}", e)),
+        Err(e) => Err(format!("Error parsing JSON response: {}", e)),
     }
 }
 
@@ -139,7 +87,7 @@ pub fn auth_status() -> Result<serde_json::Value, String> {
  */
 #[tauri::command]
 pub async fn auth_logout() -> Result<AuthResponse, String> {
-    let url = "https://localhost/php/login.php?action=logout";
+    let url = "https://localhost/php/login-api.php?action=logout";
 
     // Get client and make request
     let response = {
@@ -147,19 +95,20 @@ pub async fn auth_logout() -> Result<AuthResponse, String> {
         client.get(url).send()
     };
     
-    let response = response.await;
+    let response = response.await
+        .map_err(|e| format!("Error sending request: {}", e))?;
 
-    match response {
-        Ok(_) => {
-            // Clear logged-in user
-            if let Ok(mut user) = LOGGED_IN_USER.lock() {
-                *user = None;
+    // Parse JSON response
+    match response.json::<AuthResponse>().await {
+        Ok(auth_response) => {
+            if auth_response.success {
+                // Clear logged-in user
+                if let Ok(mut user) = LOGGED_IN_USER.lock() {
+                    *user = None;
+                }
             }
-            Ok(AuthResponse {
-                success: true,
-                message: "Logged out".to_string(),
-            })
+            Ok(auth_response)
         }
-        Err(e) => Err(format!("Error sending request: {}", e)),
+        Err(e) => Err(format!("Error parsing JSON response: {}", e)),
     }
 }
