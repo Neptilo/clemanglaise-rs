@@ -89,7 +89,9 @@ pub fn run() {
             fetch_vocab_tests,
             auth::auth_login,
             auth::auth_status,
-            auth::auth_logout
+            auth::auth_logout,
+            auth::fetch_quiz_question,
+            auth::submit_quiz_answer
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -112,3 +112,49 @@ pub async fn auth_logout() -> Result<AuthResponse, String> {
         Err(e) => Err(format!("Error parsing JSON response: {}", e)),
     }
 }
+
+/**
+ * Tauri command: Fetch a quiz question using the authenticated session.
+ * Uses the same cookie jar as auth_login, so session is maintained.
+ */
+#[tauri::command]
+pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<String, String> {
+    let url = format!(
+        "https://localhost/languages/clemanglaise/find_word.php?list_id={}&list_size_limit={}",
+        list_id, list_size_limit
+    );
+
+    let response = {
+        let client = get_http_client();
+        client.get(&url).send()
+    };
+    
+    let response = response.await
+        .map_err(|e| format!("Error fetching question: {}", e))?;
+
+    response.text().await
+        .map_err(|e| format!("Error reading response: {}", e))
+}
+
+/**
+ * Tauri command: Submit a quiz answer using the authenticated session.
+ */
+#[tauri::command]
+pub async fn submit_quiz_answer(correct: bool, word_id: u32) -> Result<String, String> {
+    let url = "https://localhost/languages/clemanglaise/set_score.php";
+    let body = format!("correct={}&word_id={}", if correct { 1 } else { 0 }, word_id);
+
+    let response = {
+        let client = get_http_client();
+        client.post(url)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+    };
+    
+    let response = response.await
+        .map_err(|e| format!("Error submitting answer: {}", e))?;
+
+    response.text().await
+        .map_err(|e| format!("Error reading response: {}", e))
+}

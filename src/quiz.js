@@ -1,6 +1,6 @@
 // Load language_utils.js and populate target language name
 const script = document.createElement('script');
-script.src = 'language_utils.js';
+script.src = 'common/language_utils.js';
 script.onload = () => {
     const targetLanguageElem = document.getElementById('target-language');
     if (targetLanguageElem) {
@@ -33,29 +33,31 @@ let askedInThisSession = 0;
 let wordId = -1;
 let correct = false;
 
-function loadNewQuestion() {
-    const xhr = new XMLHttpRequest();
-    xhr.onload = () => {
-        if (xhr.readyState !== xhr.DONE || xhr.status !== 200)
-            return;
-
-        // reverse + pops is probably faster than shifts
-        const wordData = xhr.responseText.split('\n').reverse()
-
-        wordId = Number(wordData.pop())
-        wordElems[0].innerHTML = wordElems[1].innerHTML = wordData.pop()
-        correctTranslationElem.innerHTML = wordData.pop()
-        partOfSpeechElem.innerHTML = wordData.pop()
-        commentElem.innerHTML = wordData.pop()
-        exampleElem.innerHTML = wordData.pop()
-        pronunciationElem.innerHTML = '[' + wordData.pop() + ']'
-        hintElem.innerHTML = wordData.pop()
-        // tags = wordData.pop()
+async function loadNewQuestion() {
+    try {
+        const responseText = await window.__TAURI__.core.invoke('fetch_quiz_question', {
+            listId: listId,
+            listSizeLimit: listSizeLimit
+        });
+        processQuestionResponse(responseText);
+    } catch (error) {
+        console.error('Error fetching question:', error);
     }
-    xhr.open("GET", 'https://localhost/languages/clemanglaise/find_word.php?' +
-        'list_id=' + listId +
-        '&list_size_limit=' + listSizeLimit);
-    xhr.send();
+}
+
+function processQuestionResponse(responseText) {
+    // reverse + pops is probably faster than shifts
+    const wordData = responseText.split('\n').reverse()
+
+    wordId = Number(wordData.pop())
+    wordElems[0].innerHTML = wordElems[1].innerHTML = wordData.pop()
+    correctTranslationElem.innerHTML = wordData.pop()
+    partOfSpeechElem.innerHTML = wordData.pop()
+    commentElem.innerHTML = wordData.pop()
+    exampleElem.innerHTML = wordData.pop()
+    pronunciationElem.innerHTML = '[' + wordData.pop() + ']'
+    hintElem.innerHTML = wordData.pop()
+    // tags = wordData.pop()
 }
 
 loadNewQuestion()
@@ -72,7 +74,7 @@ input.addEventListener("keypress", function(event) {
     }
 });
 
-validateQuestionButton.onclick = () => {
+validateQuestionButton.onclick = async () => {
     correct = checkAnswer(input.value, correctTranslationElem.innerHTML);
     message.innerHTML = correct ? '<b style="color:green;">Correct!</b>' :
                                   '<b style="color:red;">Wrong!</b>'
@@ -80,10 +82,14 @@ validateQuestionButton.onclick = () => {
     correctEntryElem.removeAttribute('hidden');
 
     // set score without changing page
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", 'set_score.php');
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"); // useful?
-    xhr.send("correct=" + Number(correct) + "&word_id=" + wordId);
+    try {
+        await window.__TAURI__.core.invoke('submit_quiz_answer', {
+            correct: correct,
+            wordId: wordId
+        });
+    } catch (error) {
+        console.error('Error submitting answer:', error);
+    }
 }
 
 validateAnswerButton.onclick = () => {
