@@ -1,7 +1,7 @@
-// Load language_utils.js and populate target language name
-const script = document.createElement('script');
-script.src = 'common/language_utils.js';
-script.onload = () => {
+// Load shared modules
+const languageUtilsScript = document.createElement('script');
+languageUtilsScript.src = 'common/language_utils.js';
+languageUtilsScript.onload = () => {
     const targetLanguageElem = document.getElementById('target-language');
     if (targetLanguageElem) {
         const dstCode = getUrlParameter('dst');
@@ -10,7 +10,12 @@ script.onload = () => {
         }
     }
 };
-document.head.appendChild(script);
+document.head.appendChild(languageUtilsScript);
+
+const quizLogicScript = document.createElement('script');
+quizLogicScript.src = 'common/quiz-logic.js';
+quizLogicScript.onload = initQuiz;
+document.head.appendChild(quizLogicScript);
 
 // get constant DOM elements
 const wordElems = document.getElementsByClassName('word')
@@ -28,145 +33,73 @@ const message = document.getElementById('message')
 
 const listId = Number(new URLSearchParams(window.location.search).get('list_id'))
 
-let listSizeLimit = 15; // TODO init as max(1, count) where count is the size of the list
-let askedInThisSession = 0;
-let wordId = -1;
-let correct = false;
+let quizState;
 
-async function loadNewQuestion() {
-    try {
-        const responseText = await window.__TAURI__.core.invoke('fetch_quiz_question', {
-            listId: listId,
-            listSizeLimit: listSizeLimit
-        });
-        processQuestionResponse(responseText);
-    } catch (error) {
-        console.error('Error fetching question:', error);
-    }
-}
+function initQuiz() {
+    // Create quiz state using shared module
+    quizState = createQuizState();
 
-function processQuestionResponse(responseText) {
-    // reverse + pops is probably faster than shifts
-    const wordData = responseText.split('\n').reverse()
-
-    wordId = Number(wordData.pop())
-    wordElems[0].innerHTML = wordElems[1].innerHTML = wordData.pop()
-    correctTranslationElem.innerHTML = wordData.pop()
-    partOfSpeechElem.innerHTML = wordData.pop()
-    commentElem.innerHTML = wordData.pop()
-    exampleElem.innerHTML = wordData.pop()
-    pronunciationElem.innerHTML = '[' + wordData.pop() + ']'
-    hintElem.innerHTML = wordData.pop()
-    // tags = wordData.pop()
-}
-
-loadNewQuestion()
-
-input.addEventListener("keypress", function(event) {
-    // If the user presses the "Enter" key on the keyboard
-    if (event.key === "Enter") {
-        // Cancel the default action, if needed
-        event.preventDefault();
-        if (correctEntryElem.hasAttribute('hidden'))
-            validateQuestionButton.click();
-        else
-            validateAnswerButton.click();
-    }
-});
-
-validateQuestionButton.onclick = async () => {
-    correct = checkAnswer(input.value, correctTranslationElem.innerHTML);
-    message.innerHTML = correct ? '<b style="color:green;">Correct!</b>' :
-                                  '<b style="color:red;">Wrong!</b>'
-
-    correctEntryElem.removeAttribute('hidden');
-
-    // set score without changing page
-    try {
-        await window.__TAURI__.core.invoke('submit_quiz_answer', {
-            correct: correct,
-            wordId: wordId
-        });
-    } catch (error) {
-        console.error('Error submitting answer:', error);
-    }
-}
-
-validateAnswerButton.onclick = () => {
-    // clear everything
-    correctEntryElem.setAttribute('hidden', '');
-    input.value = ''
-
-    // update list size depending on whether the last answer was correct
-    const sizeIncrement = listSizeLimit / ++askedInThisSession;
-    listSizeLimit = correct ?
-        listSizeLimit + Math.max(1, sizeIncrement) :
-        Math.max(1, listSizeLimit - 2 / 3 * sizeIncrement);
-
-    loadNewQuestion()
-}
-
-/**
- * replace all &#number; by corresponding ascii letter
- * @par string: the string we want to handle
- * @warn Untested. Might not work as expected
- */
-function ampersandUnescape(string) {
-    const rx0 = /[^&]*/;
-    const rx = /&#(\\d*);([^&]*)/g;
-    let res = '';
-    let match = rx0.exec(string)
-    if (match) {
-        res += match[0]
-
-        match = string.substr(match.index).matchAll(rx)
-        for (let i = 0; i < match.length; i++) {
-            res += String.fromCharCode(match[i][1]) + match[i][2]
+    async function loadNewQuestion() {
+        try {
+            const responseText = await window.__TAURI__.core.invoke('fetch_quiz_question', {
+                listId: listId,
+                listSizeLimit: quizState.listSizeLimit
+            });
+            
+            quizState.wordId = processQuestionResponse(responseText, {
+                wordElems,
+                meaningElem: correctTranslationElem,
+                partOfSpeechElem,
+                commentElem,
+                exampleElem,
+                pronunciationElem,
+                hintElem
+            });
+        } catch (error) {
+            console.error('Error fetching question:', error);
         }
     }
-    return res;
-}
 
-const diacriticLetters =
-    "ÀÁÂÃÄÅĄÆÇĆÈÉÊËĘÌÍÎÏŁÑŃÒÓÔÕÖØŒŠŚÙÚÛÜÝŸŽŹŻ" +
-    "àáâãäåąæçćèéêëęìíîïłñńòóôõöøœšśùúûüýÿžźż";
+    loadNewQuestion()
 
-const noDiacriticLetters = [
-    "A", "A", "A", "A", "A", "A", "A", "AE", "C", "C", "E", "E",
-    "E", "E", "E", "I", "I", "I", "I", "L", "N", "N", "O", "O",
-    "O", "O", "O", "O", "OE", "S", "S", "U", "U", "U", "U", "Y",
-    "Y", "Z", "Z", "Z",
-    "a", "a", "a", "a", "a", "a", "a", "ae", "c", "c", "e", "e",
-    "e", "e", "e", "i", "i", "i", "i", "l", "n", "n", "o", "o",
-    "o", "o", "o", "o", "oe", "s", "s", "u", "u", "u", "u", "y",
-    "y", "z", "z", "z"]
+    input.addEventListener("keypress", function(event) {
+        // If the user presses the "Enter" key on the keyboard
+        if (event.key === "Enter") {
+            // Cancel the default action, if needed
+            event.preventDefault();
+            if (correctEntryElem.hasAttribute('hidden'))
+                validateQuestionButton.click();
+            else
+                validateAnswerButton.click();
+        }
+    });
 
-function removeDiacritics(string) {
-    let ret = "";
-    for (let i = 0; i < string.length; i++) {
-        let c = string[i];
-        let dIndex = diacriticLetters.indexOf(c);
-        ret += dIndex < 0 ? c : noDiacriticLetters[dIndex];
+    validateQuestionButton.onclick = async () => {
+        quizState.correct = checkAnswer(input.value, correctTranslationElem.innerHTML);
+        message.innerHTML = quizState.correct ? '<b style="color:green;">Correct!</b>' :
+                                      '<b style="color:red;">Wrong!</b>'
+
+        correctEntryElem.removeAttribute('hidden');
+
+        // set score without changing page
+        try {
+            await window.__TAURI__.core.invoke('submit_quiz_answer', {
+                correct: quizState.correct,
+                wordId: quizState.wordId
+            });
+        } catch (error) {
+            console.error('Error submitting answer:', error);
+        }
     }
-    return ret;
-}
 
-function standardizeString(string) {
-    return removeDiacritics(ampersandUnescape(string)).toLowerCase();
-}
+    validateAnswerButton.onclick = () => {
+        // clear everything
+        correctEntryElem.setAttribute('hidden', '');
+        input.value = ''
 
-function checkAnswer(playerAnswer, correctAnswers) {
-    // remove whitespaces at start and end
-    let standardizedAnswer = playerAnswer.trim();
+        // update list size depending on whether the last answer was correct
+        quizState.updateListSize();
 
-    standardizedAnswer = standardizeString(standardizedAnswer);
-    correctAnswers = standardizeString(correctAnswers);
-
-    let correctAnswerList = correctAnswers.split(",");
-
-    // remove whitespaces at start and end of each element in the list
-    for (let i = 0; i < correctAnswerList.length; ++i)
-        correctAnswerList[i] = correctAnswerList[i].trim();
-
-    return correctAnswerList.includes(standardizedAnswer);
+        loadNewQuestion()
+    }
 }
