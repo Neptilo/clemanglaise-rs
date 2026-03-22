@@ -1,0 +1,33 @@
+/**
+ * Quiz page styles.
+ */
+
+#meaning {
+    float: left;
+}
+
+#input-row {
+    display: flex;
+    gap: 8px;
+}
+
+#input {
+    flex: 1;
+    font-size: 2em;
+    text-align: center;
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    border: 1px solid var(--input-border);
+    border-radius: 4px;
+    padding: 8px;
+}
+
+#input:focus {
+    outline: none;
+    border-color: var(--input-border-focus);
+    box-shadow: 0 0 5px var(--input-focus-shadow);
+}
+
+#hint {
+    color: var(--text-secondary);
+}

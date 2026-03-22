@@ -1,0 +1,32 @@
+/**
+ * Vocabulary test selection page (index) styles.
+ */
+
+#test-buttons {
+    padding: 0;
+    list-style: none;
+    position: relative;
+    margin: 0;
+}
+
+.tile {
+    position: absolute;
+}
+
+.language-button {
+    background-color: var(--tile-bg);
+    color: var(--tile-text);
+    text-align: center;
+    margin: 10px;
+    height: 80%;
+    width: 80%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.language-button:hover {
+    background-color: var(--tile-hover);
+}

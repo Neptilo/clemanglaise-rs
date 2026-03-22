@@ -1,0 +1,33 @@
+/**
+ * Base element defaults for Clemanglaise.
+ * Only bare HTML element selectors — no class or ID selectors.
+ */
+
+body {
+    font-family: Verdana, Geneva, sans-serif;
+    margin: 0;
+    padding: 4%;
+    padding-top: 15%;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+a {
+    text-decoration: none;
+}
+
+h1, h2 {
+    font-family: "Trebuchet MS", sans-serif;
+}
+
+h1 {
+    text-align: center;
+}
+
+p {
+    text-align: justify;
+}
+
+img {
+    border: none;
+}

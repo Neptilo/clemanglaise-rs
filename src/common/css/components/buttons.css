@@ -1,0 +1,18 @@
+/**
+ * Reusable button styles (quiz OK button).
+ */
+
+.ok-button {
+    font-size: 1.5em;
+    background-color: var(--button-primary-bg);
+    border: none;
+    color: var(--button-primary-text);
+    padding: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.ok-button:hover {
+    background-color: var(--button-primary-hover);
+}

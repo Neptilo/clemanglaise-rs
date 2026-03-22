@@ -1,88 +1,19 @@
-@import "general.css";
+/**
+ * Tauri app entry CSS — import wrapper only.
+ * All rules live in common/css/; add platform-specific overrides below.
+ */
 
-/* Support both light and dark UI for built-in controls */
-:root {
-    color-scheme: light dark;
-    /* Light mode defaults */
-    --bg-color: #ffffff;
-    --text-color: #111111;
-    --tile-bg: #8DD242;
-    --bg-hover: #8DD2D2;
-    --ok-bg: #548c18;
-}
+/* Tokens */
+@import "common/css/tokens.css";
 
-/* Dark mode overrides */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-color: #37343b;
-        --text-color: lavender;
-    }
-}
+/* Base */
+@import "common/css/base.css";
 
-/* Base page colors derived from scheme */
-body {
-    margin: 0;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-}
+/* Components */
+@import "common/css/components/login-corner.css";
+@import "common/css/components/buttons.css";
+@import "common/css/components/switch.css";
 
-/* Neutralize backgrounds and shadows coming from general.css */
-h1, h2, p, ul {
-    background-color: transparent;
-    box-shadow: none;
-}
-
-#test-buttons {
-    padding: 0;
-    list-style: none;
-    position: relative;
-    margin: 0;
-}
-
-.tile {
-    position: absolute;
-}
-
-.language-button {
-    background-color: var(--tile-bg);
-    color: black;
-    text-align: center;
-    margin: 10px;
-    height: 80%;
-    width: 80%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.language-button:hover {
-    background-color: var(--bg-hover);
-}
-
-#meaning {
-    float: left;
-}
-
-#input-row {
-    display: flex;
-    gap: 8px;
-}
-
-#input {
-    flex: 1;
-    font-size: 2em;
-    text-align: center;
-}
-
-.ok-button {
-    font-size: 1.5em;
-    background-color: var(--ok-bg);
-    border: none;
-    color: white;
-    padding: 16px;
-    border-radius: 8px;
-}
-
-.ok-button:hover {
-    background-color: var(--bg-hover);
-}
+/* Screens */
+@import "common/css/screens/test-list.css";
+@import "common/css/screens/quiz.css";

@@ -1,0 +1,128 @@
+/**
+ * Design tokens for Clemanglaise (web and desktop).
+ * Supports light and dark modes via system preference.
+ *
+ * Two layers:
+ *   1. Palette aliases — raw values shared by several semantic tokens.
+ *   2. Semantic tokens — named by role, reference palette aliases where values coincide.
+ */
+
+:root {
+    color-scheme: light dark;
+}
+
+/* ─── Light mode (default) ─────────────────────────────────────────────────── */
+:root {
+    /* Palette aliases: raw values that appear in multiple semantic tokens */
+    --color-accent:  #4CAF50; /* primary action green (login btn, focus ring, switch) */
+    --color-danger:  #f44336; /* destructive / error red (logout btn, error text)     */
+    --color-border:  #dddddd; /* subtle separator (borders, dividers, secondary btn)  */
+
+    /* Page */
+    --bg-color:       #ffffff;
+    --text-color:     #111111;
+    --text-secondary: #555555;
+
+    /* Tiles (test-list grid) */
+    --tile-bg:    #8DD242;
+    --tile-text:  #000000;
+    --tile-hover: #8DD2D2;
+
+    /* Primary action buttons */
+    --button-primary-bg:    #548c18;
+    --button-primary-text:  #ffffff;
+    --button-primary-hover: #6ba31f;
+
+    /* Secondary buttons */
+    --button-secondary-bg:    var(--color-border);
+    --button-secondary-text:  #333333;
+    --button-secondary-hover: #cccccc;
+
+    /* Login / Auth */
+    --login-btn-bg:          var(--color-accent);
+    --login-btn-hover:       #45a049;
+    --logout-btn-bg:         var(--color-danger);
+    --logout-btn-hover:      #da190b;
+    --login-greeting-bg:     #f0f0f0;
+    --login-greeting-border: var(--color-border);
+    --login-greeting-text:   #333333;
+
+    /* Modal */
+    --modal-bg:          #ffffff;
+    --modal-overlay:     rgba(0, 0, 0, 0.5);
+    --modal-header-text: #333333;
+    --modal-close-color: #999999;
+    --modal-close-hover: #333333;
+
+    /* Form */
+    --input-bg:           #ffffff;
+    --input-text:         #333333;
+    --input-border:       var(--color-border);
+    --input-border-focus: var(--color-accent);
+    --input-focus-shadow: rgba(76, 175, 80, 0.3);
+    --label-text:         #333333;
+    --error-text:         var(--color-danger);
+
+    /* Switch */
+    --switch-bg:   var(--color-accent);
+    --switch-knob: #ffffff;
+}
+
+/* ─── Dark mode overrides ──────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Palette aliases */
+        --color-accent: #5cb860; /* brighter green for dark backgrounds              */
+        --color-danger: #e53935; /* slightly muted red (error-text uses #ff5252)     */
+        --color-border: #5a5760; /* muted separator on dark surfaces                 */
+
+        /* Page */
+        --bg-color:       #37343b;
+        --text-color:     #e8e6f0;
+        --text-secondary: #b8b6c0;
+
+        /* Tiles */
+        --tile-bg:    #6ba31f;
+        --tile-text:  #ffffff;
+        --tile-hover: #5a8c4d;
+
+        /* Primary action buttons */
+        --button-primary-bg:    #6ba31f;
+        --button-primary-text:  #ffffff;
+        --button-primary-hover: #548c18;
+
+        /* Secondary buttons */
+        --button-secondary-bg:    #4a4750;
+        --button-secondary-text:  var(--text-color);
+        --button-secondary-hover: var(--color-border);
+
+        /* Login / Auth */
+        --login-btn-bg:          var(--color-accent);
+        --login-btn-hover:       #4ea752;
+        --logout-btn-bg:         var(--color-danger);
+        --logout-btn-hover:      #c62828;
+        --login-greeting-bg:     #4a4750;
+        --login-greeting-border: var(--color-border);
+        --login-greeting-text:   var(--text-color);
+
+        /* Modal */
+        --modal-bg:          #2d2a32;
+        --modal-overlay:     rgba(0, 0, 0, 0.7);
+        --modal-header-text: var(--text-color);
+        --modal-close-color: var(--text-secondary);
+        --modal-close-hover: var(--text-color);
+
+        /* Form */
+        --input-bg:           #3d3a42;
+        --input-text:         var(--text-color);
+        --input-border:       var(--color-border);
+        --input-border-focus: #6ba31f;
+        --input-focus-shadow: rgba(107, 163, 31, 0.3);
+        --label-text:         var(--text-color);
+        --error-text:         #ff5252; /* brighter than --color-danger for readability */
+
+        /* Switch */
+        --switch-bg:   var(--color-accent);
+        --switch-knob: #ffffff;
+    }
+}
