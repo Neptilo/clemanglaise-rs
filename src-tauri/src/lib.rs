@@ -1,6 +1,5 @@
 use rusqlite::{params, Connection, Result as SqlResult};
 use serde::{Deserialize, Serialize};
-use reqwest::Client;
 
 mod auth;
 
@@ -17,7 +16,7 @@ pub struct Test {
 async fn fetch_vocab_tests(remote: bool) -> Result<Vec<Test>, String> {
     if remote {
         // Fetch vocab lists from the remote server
-        let client = Client::new();
+        let client = auth::build_http_client(false);
         let url = "https://localhost/php/clemanglaise/get_lists.php";
 
         match client.get(url).send().await {
@@ -88,6 +87,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             fetch_vocab_tests,
             auth::auth_login,
+            auth::auth_register,
             auth::auth_status,
             auth::auth_logout,
             auth::fetch_quiz_question,

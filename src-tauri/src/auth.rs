@@ -5,12 +5,7 @@ use once_cell::sync::Lazy;
 
 // Global HTTP client with persistent cookies across all commands
 pub static HTTP_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| {
-    Mutex::new(
-        Client::builder()
-            .cookie_store(true)
-            .build()
-            .unwrap_or_else(|_| Client::new())
-    )
+    Mutex::new(build_http_client(true))
 });
 
 // Global state for logged-in user tracking
@@ -20,6 +15,17 @@ pub static LOGGED_IN_USER: Mutex<Option<String>> = Mutex::new(None);
 pub struct AuthResponse {
     pub success: bool,
     pub message: String,
+}
+
+pub fn build_http_client(cookie_store: bool) -> Client {
+    Client::builder()
+        .cookie_store(cookie_store)
+        .build()
+        .unwrap_or_else(|_| Client::new())
+}
+
+fn map_request_error(context: &str, error: reqwest::Error) -> String {
+    format!("{}: {}", context, error)
 }
 
 /**
@@ -51,7 +57,7 @@ pub async fn auth_login(username: String, password: String) -> Result<AuthRespon
     };
     
     let response = response.await
-        .map_err(|e| format!("Error sending request: {}", e))?;
+        .map_err(|e| map_request_error("Error sending request", e))?;
 
     // Parse JSON response
     match response.json::<AuthResponse>().await {
@@ -66,6 +72,41 @@ pub async fn auth_login(username: String, password: String) -> Result<AuthRespon
         }
         Err(e) => Err(format!("Error parsing JSON response: {}", e)),
     }
+}
+
+/**
+ * Tauri command: Register a new user against the JSON auth API endpoint.
+ */
+#[tauri::command]
+pub async fn auth_register(
+    username: String,
+    password: String,
+    password2: String,
+    email: String,
+    captcha_response: String,
+) -> Result<AuthResponse, String> {
+    let url = "https://localhost/php/login-api.php?action=register";
+
+    let params = [
+        ("pseudo", username.as_str()),
+        ("password", password.as_str()),
+        ("password2", password2.as_str()),
+        ("email", email.as_str()),
+        ("g-recaptcha-response", captcha_response.as_str()),
+    ];
+
+    let response = {
+        let client = get_http_client();
+        client.post(url).form(&params).send()
+    };
+
+    let response = response.await
+        .map_err(|e| map_request_error("Error sending request", e))?;
+
+    response
+        .json::<AuthResponse>()
+        .await
+        .map_err(|e| format!("Error parsing JSON response: {}", e))
 }
 
 /**
@@ -96,7 +137,7 @@ pub async fn auth_logout() -> Result<AuthResponse, String> {
     };
     
     let response = response.await
-        .map_err(|e| format!("Error sending request: {}", e))?;
+        .map_err(|e| map_request_error("Error sending request", e))?;
 
     // Parse JSON response
     match response.json::<AuthResponse>().await {
@@ -130,7 +171,7 @@ pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<S
     };
     
     let response = response.await
-        .map_err(|e| format!("Error fetching question: {}", e))?;
+        .map_err(|e| map_request_error("Error fetching question", e))?;
 
     response.text().await
         .map_err(|e| format!("Error reading response: {}", e))
@@ -153,7 +194,7 @@ pub async fn submit_quiz_answer(correct: bool, word_id: u32) -> Result<String, S
     };
     
     let response = response.await
-        .map_err(|e| format!("Error submitting answer: {}", e))?;
+        .map_err(|e| map_request_error("Error submitting answer", e))?;
 
     response.text().await
         .map_err(|e| format!("Error reading response: {}", e))

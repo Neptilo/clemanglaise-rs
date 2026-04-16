@@ -24,8 +24,10 @@
   </div>
 
   <script src="common/render-vocab-tests.js"></script>
-  <script src="common/auth.js"></script>
-  <script src="common/login-corner.js"></script>
+  <script src="auth/client.js"></script>
+  <script src="auth/session.js"></script>
+  <script src="auth/ui/login-modal.js"></script>
+  <script src="auth/ui/login-corner.js"></script>
   <script>
       const invoke = window.__TAURI__.core.invoke;
       async function fetchVocabTests(remote) {

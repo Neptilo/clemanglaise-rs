@@ -10,7 +10,7 @@
 @import "common/css/base.css";
 
 /* Components */
-@import "common/css/components/login-corner.css";
+@import "auth/css/auth.css";
 @import "common/css/components/buttons.css";
 @import "common/css/components/switch.css";
 
