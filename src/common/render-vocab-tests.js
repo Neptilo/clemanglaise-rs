@@ -6,7 +6,7 @@ function countryCodeToFlagImageUrl(code) {
   return `https://flagcdn.com/w80/${normalized}.png`;
 }
 
-function renderVocabTests(tests, quizPage = 'quiz.php') {
+function renderVocabTests(tests, quizPage = 'quiz.php', remote = true) {
   const testButtonsContainer = document.getElementById('test-buttons');
   
   if (!testButtonsContainer) {
@@ -27,7 +27,7 @@ function renderVocabTests(tests, quizPage = 'quiz.php') {
     
     const a = document.createElement('a');
     a.classList.add('language-button');
-    a.href = `${quizPage}?list_id=${test.id}&dst=${encodeURIComponent(test.dst)}`;
+    a.href = `${quizPage}?list_id=${test.id}&dst=${encodeURIComponent(test.dst)}&remote=${remote}`;
 
     if (test.flag) {
       const flagImageUrl = countryCodeToFlagImageUrl(test.flag);

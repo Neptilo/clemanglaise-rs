@@ -33,7 +33,7 @@
       async function fetchVocabTests(remote) {
       try {
         const tests = await invoke("fetch_vocab_tests", { remote });
-        renderVocabTests(tests, 'quiz.html');
+        renderVocabTests(tests, 'quiz.html', remote);
       } catch (error) {
         console.error("Error fetching vocabulary tests:", error);
         document.getElementById('test-buttons').innerHTML = "<p>Error loading data.</p>";
@@ -43,7 +43,7 @@
     const modeSwitch = document.getElementById('mode-switch');
     modeSwitch.addEventListener('change',
         () => fetchVocabTests(modeSwitch.checked));
-    window.onload = () => fetchVocabTests(true);
+    window.onload = () => fetchVocabTests(modeSwitch.checked);
   </script>
   <script src="square_grid.js"></script>
 </body>

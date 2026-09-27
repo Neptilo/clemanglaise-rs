@@ -31,7 +31,9 @@ const correctEntryElem = document.getElementById('answer')
 const correctTranslationElem = document.getElementById('meaning')
 const message = document.getElementById('message')
 
-const listId = Number(new URLSearchParams(window.location.search).get('list_id'))
+const params = new URLSearchParams(window.location.search)
+const listId = Number(params.get('list_id'))
+const remote = params.get('remote') !== 'false'
 
 let quizState;
 
@@ -43,7 +45,8 @@ function initQuiz() {
         try {
             const responseText = await window.__TAURI__.core.invoke('fetch_quiz_question', {
                 listId: listId,
-                listSizeLimit: quizState.listSizeLimit
+                listSizeLimit: quizState.listSizeLimit,
+                remote: remote
             });
             
             quizState.wordId = processQuestionResponse(responseText, {
@@ -85,7 +88,8 @@ function initQuiz() {
         try {
             await window.__TAURI__.core.invoke('submit_quiz_answer', {
                 correct: quizState.correct,
-                wordId: quizState.wordId
+                wordId: quizState.wordId,
+                remote: remote
             });
         } catch (error) {
             console.error('Error submitting answer:', error);

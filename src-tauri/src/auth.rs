@@ -1,12 +1,10 @@
+use once_cell::sync::Lazy;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use once_cell::sync::Lazy;
 
 // Global HTTP client with persistent cookies across all commands
-pub static HTTP_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| {
-    Mutex::new(build_http_client(true))
-});
+pub static HTTP_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| Mutex::new(build_http_client(true)));
 
 // Global state for logged-in user tracking
 pub static LOGGED_IN_USER: Mutex<Option<String>> = Mutex::new(None);
@@ -55,8 +53,9 @@ pub async fn auth_login(username: String, password: String) -> Result<AuthRespon
         let client = get_http_client();
         client.post(url).form(&params).send()
     };
-    
-    let response = response.await
+
+    let response = response
+        .await
         .map_err(|e| map_request_error("Error sending request", e))?;
 
     // Parse JSON response
@@ -100,7 +99,8 @@ pub async fn auth_register(
         client.post(url).form(&params).send()
     };
 
-    let response = response.await
+    let response = response
+        .await
         .map_err(|e| map_request_error("Error sending request", e))?;
 
     response
@@ -114,9 +114,8 @@ pub async fn auth_register(
  */
 #[tauri::command]
 pub fn auth_status() -> Result<serde_json::Value, String> {
-    let user = LOGGED_IN_USER.lock().ok()
-        .and_then(|u| u.clone());
-    
+    let user = LOGGED_IN_USER.lock().ok().and_then(|u| u.clone());
+
     Ok(serde_json::json!({
         "isLoggedIn": user.is_some(),
         "username": user.unwrap_or_default(),
@@ -135,8 +134,9 @@ pub async fn auth_logout() -> Result<AuthResponse, String> {
         let client = get_http_client();
         client.get(url).send()
     };
-    
-    let response = response.await
+
+    let response = response
+        .await
         .map_err(|e| map_request_error("Error sending request", e))?;
 
     // Parse JSON response
@@ -158,7 +158,6 @@ pub async fn auth_logout() -> Result<AuthResponse, String> {
  * Tauri command: Fetch a quiz question using the authenticated session.
  * Uses the same cookie jar as auth_login, so session is maintained.
  */
-#[tauri::command]
 pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<String, String> {
     let url = format!(
         "https://localhost/languages/clemanglaise/find_word.php?list_id={}&list_size_limit={}",
@@ -169,33 +168,43 @@ pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<S
         let client = get_http_client();
         client.get(&url).send()
     };
-    
-    let response = response.await
+
+    let response = response
+        .await
         .map_err(|e| map_request_error("Error fetching question", e))?;
 
-    response.text().await
+    response
+        .text()
+        .await
         .map_err(|e| format!("Error reading response: {}", e))
 }
 
 /**
  * Tauri command: Submit a quiz answer using the authenticated session.
  */
-#[tauri::command]
 pub async fn submit_quiz_answer(correct: bool, word_id: u32) -> Result<String, String> {
     let url = "https://localhost/languages/clemanglaise/set_score.php";
-    let body = format!("correct={}&word_id={}", if correct { 1 } else { 0 }, word_id);
+    let body = format!(
+        "correct={}&word_id={}",
+        if correct { 1 } else { 0 },
+        word_id
+    );
 
     let response = {
         let client = get_http_client();
-        client.post(url)
+        client
+            .post(url)
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
     };
-    
-    let response = response.await
+
+    let response = response
+        .await
         .map_err(|e| map_request_error("Error submitting answer", e))?;
 
-    response.text().await
+    response
+        .text()
+        .await
         .map_err(|e| format!("Error reading response: {}", e))
 }
