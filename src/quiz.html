@@ -9,26 +9,27 @@
 <body>
   <!-- Login corner in top-right -->
   <div id="login-corner"></div>
-  <p>Translate: <b class="word"></b> into <span id="target-language"></span>.</p>
-  <p><em id="hint"></em></p>
-  <div id="input-row">
-    <input type="text" id="input" required>
-    <button class="ok-button" id="validate-question-button">OK</button>
-  </div>
-  <div id="answer" hidden>
-    <h2 id="meaning"></h2>
-    <p id="message"></p>
-    <p>
-      <b class="word"></b><em id="part-of-speech"></em>:<b id="pronunciation"></b>
-    </p>
-    <p><em id="comment"></em></p>
-    <p><em id="example"></em></p>
-    <button class="ok-button" id="validate-answer-button">OK</button>
-  </div>
+  <main id="quiz-content"></main>
   <script src="auth/client.js"></script>
   <script src="auth/session.js"></script>
   <script src="auth/ui/login-modal.js"></script>
   <script src="auth/ui/login-corner.js"></script>
-  <script src="quiz.js"></script>
+  <script>
+    fetch('common/quiz-content.html')
+      .then(response => response.text())
+      .then(html => {
+        html = html.replace(/\{\{(.*?)\}\}/g, '$1');
+        document.getElementById('quiz-content').innerHTML = html;
+        const filterScript = document.createElement('script');
+        filterScript.src = 'common/quiz-tag-filter.js';
+        filterScript.onload = () => {
+          const quizScript = document.createElement('script');
+          quizScript.src = 'quiz.js';
+          document.body.appendChild(quizScript);
+        };
+        document.head.appendChild(filterScript);
+      })
+      .catch(error => console.error('Error loading quiz content:', error));
+  </script>
 </body>
 </html>

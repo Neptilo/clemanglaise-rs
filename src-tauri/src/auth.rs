@@ -15,6 +15,22 @@ pub struct AuthResponse {
     pub message: String,
 }
 
+pub const SERVER_DOMAIN: &str = match option_env!("CLEMANGLAISE_SERVER_URL") {
+    Some(url) => url,
+    None if cfg!(debug_assertions) => "https://localhost",
+    None => "https://neptilo.com",
+};
+const API_ROOT: &str = "/languages/clemanglaise/";
+pub const PHP_API_ROOT: &str = "/php/clemanglaise/";
+
+pub fn server_url(path: &str) -> String {
+    format!("{}{}", SERVER_DOMAIN.trim_end_matches('/'), path)
+}
+
+pub fn api_url() -> String {
+    server_url(API_ROOT)
+}
+
 pub fn build_http_client(cookie_store: bool) -> Client {
     Client::builder()
         .cookie_store(cookie_store)
@@ -40,7 +56,7 @@ pub fn get_http_client() -> std::sync::MutexGuard<'static, Client> {
  */
 #[tauri::command]
 pub async fn auth_login(username: String, password: String) -> Result<AuthResponse, String> {
-    let url = "https://localhost/php/login-api.php?action=login";
+    let url = server_url("/php/login-api.php?action=login");
 
     // Build form data - PHP expects specific field names
     let params = [
@@ -84,7 +100,7 @@ pub async fn auth_register(
     email: String,
     captcha_response: String,
 ) -> Result<AuthResponse, String> {
-    let url = "https://localhost/php/login-api.php?action=register";
+    let url = server_url("/php/login-api.php?action=register");
 
     let params = [
         ("pseudo", username.as_str()),
@@ -127,7 +143,7 @@ pub fn auth_status() -> Result<serde_json::Value, String> {
  */
 #[tauri::command]
 pub async fn auth_logout() -> Result<AuthResponse, String> {
-    let url = "https://localhost/php/login-api.php?action=logout";
+    let url = server_url("/php/login-api.php?action=logout");
 
     // Get client and make request
     let response = {
@@ -158,10 +174,37 @@ pub async fn auth_logout() -> Result<AuthResponse, String> {
  * Tauri command: Fetch a quiz question using the authenticated session.
  * Uses the same cookie jar as auth_login, so session is maintained.
  */
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QuizTag {
+    pub id: i32,
+    pub name: String,
+}
+
+pub async fn fetch_quiz_tags(list_id: u32) -> Result<Vec<QuizTag>, String> {
+    let url = format!("{}find_used_tags.php?list_id={}", server_url(PHP_API_ROOT), list_id);
+    let response = {
+        let client = get_http_client();
+        client.get(&url).send()
+    };
+    let response = response.await.map_err(|e| map_request_error("Error fetching quiz tags", e))?;
+    if !response.status().is_success() {
+        return Err(format!("Error fetching quiz tags: server returned {}", response.status()));
+    }
+    let body = response.text().await.map_err(|e| format!("Error reading tag response: {}", e))?;
+    let lines = body.lines().filter(|line| !line.is_empty()).collect::<Vec<_>>();
+    if lines.len() % 2 != 0 || lines.iter().step_by(2).any(|id| id.trim().parse::<i32>().is_err()) {
+        return Err(format!("Invalid tag response from server: {}", body));
+    }
+    Ok(lines.chunks_exact(2).map(|pair| QuizTag {
+        id: pair[0].trim().parse().expect("validated tag ID"),
+        name: pair[1].trim().to_string(),
+    }).collect())
+}
+
 pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<String, String> {
     let url = format!(
-        "https://localhost/languages/clemanglaise/find_word.php?list_id={}&list_size_limit={}",
-        list_id, list_size_limit
+        "{}find_word.php?list_id={}&list_size_limit={}",
+        api_url(), list_id, list_size_limit
     );
 
     let response = {
@@ -172,6 +215,9 @@ pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<S
     let response = response
         .await
         .map_err(|e| map_request_error("Error fetching question", e))?;
+    if !response.status().is_success() {
+        return Err(format!("Error fetching question: server returned {}", response.status()));
+    }
 
     response
         .text()
@@ -183,7 +229,7 @@ pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<S
  * Tauri command: Submit a quiz answer using the authenticated session.
  */
 pub async fn submit_quiz_answer(correct: bool, word_id: u32) -> Result<String, String> {
-    let url = "https://localhost/languages/clemanglaise/set_score.php";
+    let url = format!("{}set_score.php", api_url());
     let body = format!(
         "correct={}&word_id={}",
         if correct { 1 } else { 0 },

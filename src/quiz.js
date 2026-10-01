@@ -14,7 +14,12 @@ document.head.appendChild(languageUtilsScript);
 
 const quizLogicScript = document.createElement('script');
 quizLogicScript.src = 'common/quiz-logic.js';
-quizLogicScript.onload = initQuiz;
+quizLogicScript.onload = () => {
+    const tagFilterScript = document.createElement('script');
+    tagFilterScript.src = 'common/quiz-tag-filter.js';
+    tagFilterScript.onload = initQuiz;
+    document.head.appendChild(tagFilterScript);
+};
 document.head.appendChild(quizLogicScript);
 
 // get constant DOM elements
@@ -30,23 +35,26 @@ const validateAnswerButton = document.getElementById('validate-answer-button')
 const correctEntryElem = document.getElementById('answer')
 const correctTranslationElem = document.getElementById('meaning')
 const message = document.getElementById('message')
+const tagFilter = document.getElementById('tag-filter')
 
 const params = new URLSearchParams(window.location.search)
 const listId = Number(params.get('list_id'))
 const remote = params.get('remote') !== 'false'
 
 let quizState;
+let selectedTags = [];
+let loadNewQuestion;
 
 function initQuiz() {
-    // Create quiz state using shared module
     quizState = createQuizState();
 
-    async function loadNewQuestion() {
+    loadNewQuestion = async function() {
         try {
             const responseText = await window.__TAURI__.core.invoke('fetch_quiz_question', {
                 listId: listId,
                 listSizeLimit: quizState.listSizeLimit,
-                remote: remote
+                remote: remote,
+                selectedTags: selectedTags
             });
             
             quizState.wordId = processQuestionResponse(responseText, {
@@ -63,7 +71,17 @@ function initQuiz() {
         }
     }
 
-    loadNewQuestion()
+    installQuizTagFilter({
+        container: tagFilter,
+        fetchTags: async () => remote
+            ? await window.__TAURI__.core.invoke('fetch_remote_quiz_tags', { listId })
+            : await window.__TAURI__.core.invoke('fetch_quiz_tags', { listId }),
+        onSelectionChange: tags => {
+            selectedTags = tags;
+            if (loadNewQuestion) loadNewQuestion();
+        }
+    });
+    loadNewQuestion();
 
     input.addEventListener("keypress", function(event) {
         // If the user presses the "Enter" key on the keyboard

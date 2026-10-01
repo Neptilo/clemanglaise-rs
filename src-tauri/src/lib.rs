@@ -21,9 +21,9 @@ async fn fetch_vocab_tests(remote: bool) -> Result<Vec<Test>, String> {
     if remote {
         // Fetch vocab lists from the remote server
         let client = auth::build_http_client(false);
-        let url = "https://localhost/php/clemanglaise/get_lists.php";
+        let url = format!("{}get_lists.php", auth::server_url(auth::PHP_API_ROOT));
 
-        match client.get(url).send().await {
+        match client.get(&url).send().await {
             Ok(response) => match response.text().await {
                 Ok(body) => {
                     let lines: Vec<&str> = body.trim().split('\n').collect();
@@ -83,11 +83,40 @@ fn fetch_vocab_tests_from_db() -> SqlResult<Vec<Test>> {
     Ok(tests)
 }
 
+#[derive(Debug, Serialize)]
+struct QuizTag {
+    id: i32,
+    name: String,
+}
+
+#[tauri::command]
+async fn fetch_remote_quiz_tags(list_id: u32) -> Result<Vec<auth::QuizTag>, String> {
+    auth::fetch_quiz_tags(list_id).await
+}
+
+#[tauri::command]
+fn fetch_quiz_tags(list_id: u32) -> Result<Vec<QuizTag>, String> {
+    let conn = Connection::open(DATABASE_FILE)
+        .map_err(|e| format!("Error opening local database: {e}"))?;
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT tags.id, tags.name FROM words_tags \
+         INNER JOIN tags ON tags.id = words_tags.tag_id \
+         INNER JOIN words ON words.id = words_tags.word_id \
+         WHERE words.list_id = ?1 ORDER BY tags.name ASC"
+    ).map_err(|e| format!("Error preparing local tag query: {e}"))?;
+    let rows = stmt.query_map([list_id], |row| Ok(QuizTag { id: row.get(0)?, name: row.get(1)? }))
+        .map_err(|e| format!("Error querying local tags: {e}"))?;
+    let tags = rows.collect::<SqlResult<Vec<_>>>()
+        .map_err(|e| format!("Error reading local tags: {e}"))?;
+    Ok(tags)
+}
+
 #[tauri::command]
 async fn fetch_quiz_question(
     list_id: u32,
     list_size_limit: u32,
     remote: bool,
+    selected_tags: Vec<i32>,
 ) -> Result<String, String> {
     if remote {
         return auth::fetch_quiz_question(list_id, list_size_limit).await;
@@ -96,14 +125,30 @@ async fn fetch_quiz_question(
     let conn = Connection::open(DATABASE_FILE)
         .map_err(|e| format!("Error opening local database: {e}"))?;
     let limit = list_size_limit.max(1);
-    let mut stmt = conn.prepare(
+    let ids = selected_tags.iter().copied().filter(|id| *id > 0).collect::<Vec<_>>();
+    let condition = if selected_tags.is_empty() {
+        "1=1".to_string()
+    } else {
+        let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        let tagged = if ids.is_empty() { "0=1".to_string() } else {
+            format!("EXISTS (SELECT 1 FROM words_tags wt WHERE wt.word_id = words.id AND wt.tag_id IN ({placeholders}))")
+        };
+        if selected_tags.contains(&0) {
+            format!("({tagged} OR NOT EXISTS (SELECT 1 FROM words_tags wt WHERE wt.word_id = words.id))")
+        } else { tagged }
+    };
+    let sql = format!(
         "SELECT id, word, meaning, nature, comment, example, pronunciation, hint \
-         FROM (SELECT DISTINCT words.* FROM words LEFT JOIN words_tags ON words.id = words_tags.word_id \
-         WHERE list_id = ?1 ORDER BY asked DESC LIMIT ?2) \
+         FROM (SELECT words.* FROM words WHERE list_id = ? AND {condition} ORDER BY asked DESC LIMIT ?) \
          ORDER BY score, RANDOM() LIMIT 1"
-    ).map_err(|e| format!("Error preparing local question query: {e}"))?;
+    );
+    let mut stmt = conn.prepare(&sql)
+        .map_err(|e| format!("Error preparing local question query: {e}"))?;
+    let mut query_params = vec![rusqlite::types::Value::Integer(list_id.into())];
+    query_params.extend(ids.iter().map(|id| rusqlite::types::Value::Integer((*id).into())));
+    query_params.push(rusqlite::types::Value::Integer(limit.into()));
     let mut rows = stmt
-        .query(params![list_id, limit])
+        .query(rusqlite::params_from_iter(query_params))
         .map_err(|e| format!("Error querying local words: {e}"))?;
     let row = rows
         .next()
@@ -170,6 +215,8 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             fetch_vocab_tests,
+            fetch_remote_quiz_tags,
+            fetch_quiz_tags,
             fetch_quiz_question,
             submit_quiz_answer,
             auth::auth_login,
