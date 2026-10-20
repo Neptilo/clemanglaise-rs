@@ -1,0 +1,86 @@
+<button
+  id="back"
+  class="editor-icon-button editor-back-button"
+  type="button"
+  title="{{BACK_LABEL}}"
+  aria-label="{{BACK_LABEL}}"
+>
+  <img src="common/assets/icons/go-previous.png" alt="" />
+</button>
+
+<main class="word-manager">
+  <h1 id="list-title">{{PAGE_TITLE}}</h1>
+  <p id="status" role="status" aria-live="polite"></p>
+
+  <section id="word-form" hidden>
+    <h2 id="form-title">{{ADD_WORD_LABEL}}</h2>
+    <form id="editor">
+      <label>
+        <span>{{WORD_LABEL}}</span>
+        <input name="word" required />
+      </label>
+
+      <label>
+        <span>{{PART_OF_SPEECH_LABEL}}</span>
+        <select name="nature">
+          <option value="">—</option>
+          <option value="adj">Adjective</option>
+          <option value="adv">Adverb</option>
+          <option value="art">Article</option>
+          <option value="clas">Classifier</option>
+          <option value="conj">Conjunction</option>
+          <option value="inter">Interjection</option>
+          <option value="n">Noun</option>
+          <option value="part">Particle</option>
+          <option value="phras">Phrase</option>
+          <option value="prep">Preposition</option>
+          <option value="pron">Pronoun</option>
+          <option value="v">Verb</option>
+        </select>
+      </label>
+
+      <label id="gender-row" hidden>
+        <span>Gender</span>
+        <select name="gender">
+          <option value="">—</option>
+          <option value="m">Masculine</option>
+          <option value="f">Feminine</option>
+          <option value="n">Neuter</option>
+        </select>
+      </label>
+
+      <label>
+        <span>{{TRANSLATION_LABEL}}</span>
+        <input name="meaning" />
+      </label>
+      <label>
+        <span>{{PRONUNCIATION_LABEL}}</span>
+        <input name="pronunciation" />
+      </label>
+      <label>
+        <span>{{COMMENT_LABEL}}</span>
+        <textarea name="comment"></textarea>
+      </label>
+      <label>
+        <span>{{EXAMPLE_LABEL}}</span>
+        <textarea name="example"></textarea>
+      </label>
+      <label>
+        <span>{{HINT_LABEL}}</span>
+        <textarea name="hint"></textarea>
+      </label>
+
+      <label>
+        <span>{{TAGS_LABEL}}</span>
+        <details id="word-tags">
+          <summary>{{SELECT_TAGS_LABEL}}</summary>
+          <div id="tags" role="group" aria-label="{{TAGS_LABEL}}"></div>
+        </details>
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="word-submit-button">{{SAVE_LABEL}}</button>
+      </div>
+    </form>
+  </section>
+</main>

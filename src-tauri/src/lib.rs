@@ -2,6 +2,7 @@ use rusqlite::{params, Connection, Result as SqlResult};
 use serde::{Deserialize, Serialize};
 
 mod auth;
+mod words;
 
 const DATABASE_FILE: &str = "clemanglaise.sqlite";
 const PREVIOUS_SCORE_WEIGHT: f64 = 0.7;
@@ -215,6 +216,10 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             fetch_vocab_tests,
+            words::fetch_words,
+            words::fetch_word,
+            words::fetch_word_tags,
+            words::save_word,
             fetch_remote_quiz_tags,
             fetch_quiz_tags,
             fetch_quiz_question,

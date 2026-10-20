@@ -1,20 +1,46 @@
-  <details id="tag-filter" aria-label="{{Filter by tags}}">
-    <summary>{{Filter by tags}}</summary>
-    <div id="tag-filter-options" role="group" aria-label="{{Filter by tags}}"></div>
-  </details>
-  <p>{{Translate: }}<b class="word"></b> {{into}} <span id="target-language"></span>.</p>
-  <p><em id="hint"></em></p>
-  <div id="input-row">
-    <input type="text" id="input" required>
-    <button class="ok-button" id="validate-question-button">{{OK}}</button>
-  </div>
-  <div id="answer" hidden>
-    <h2 id="meaning"></h2>
-    <p id="message"></p>
-    <p>
-      <b class="word"></b><em id="part-of-speech"></em>:<b id="pronunciation"></b>
-    </p>
-    <p><em id="comment"></em></p>
-    <p><em id="example"></em></p>
-    <button class="ok-button" id="validate-answer-button">{{OK}}</button>
-  </div>
+<nav id="quiz-actions" aria-label="{{Vocabulary actions}}">
+  <a
+    id="add-word-link"
+    class="quiz-action-button"
+    title="Add a word"
+    aria-label="Add a word"
+    hidden
+    ><img src="common/assets/icons/list-add.png" alt="" /></a
+  ><button
+    id="edit-current-word"
+    class="quiz-action-button"
+    type="button"
+    title="Edit current word"
+    aria-label="Edit current word"
+    hidden
+  >
+    <img src="common/assets/icons/accessories-text-editor.png" alt="" />
+  </button>
+</nav>
+<details id="tag-filter" aria-label="{{Filter by tags}}">
+  <summary>{{Filter by tags}}</summary>
+  <div
+    id="tag-filter-options"
+    role="group"
+    aria-label="{{Filter by tags}}"
+  ></div>
+</details>
+<p>
+  {{Translate: }}<b class="word"></b> {{into}}
+  <span id="target-language"></span>.
+</p>
+<p><em id="hint"></em></p>
+<div id="input-row">
+  <input type="text" id="input" required />
+  <button class="ok-button" id="validate-question-button">{{OK}}</button>
+</div>
+<div id="answer" hidden>
+  <h2 id="meaning"></h2>
+  <p id="message"></p>
+  <p>
+    <b class="word"></b><em id="part-of-speech"></em>:<b id="pronunciation"></b>
+  </p>
+  <p><em id="comment"></em></p>
+  <p><em id="example"></em></p>
+  <button class="ok-button" id="validate-answer-button">{{OK}}</button>
+</div>

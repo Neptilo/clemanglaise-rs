@@ -1,0 +1,171 @@
+.word-manager {
+  max-width: 54rem;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+
+.word-manager form {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(0, 2fr);
+  gap: 0.8rem 1rem;
+}
+
+.word-manager form > label {
+  display: contents;
+}
+
+.word-manager form > label > span {
+  grid-column: 1;
+  align-self: center;
+  text-align: right;
+}
+
+.word-manager form > label > input,
+.word-manager form > label > select,
+.word-manager form > label > textarea,
+.word-manager form > label > details {
+  grid-column: 2;
+  align-self: center;
+}
+
+.word-manager input,
+.word-manager select,
+.word-manager textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.55rem;
+  font: inherit;
+}
+
+.word-manager textarea {
+  min-height: 4rem;
+}
+
+.editor-back-button {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+}
+
+.editor-icon-button,
+.quiz-action-button {
+  display: inline-grid;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  padding: 6px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  cursor: pointer;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.editor-icon-button img,
+.quiz-action-button img {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.editor-icon-button:hover,
+.quiz-action-button:hover {
+  background: var(--button-secondary-hover);
+}
+
+.editor-icon-button:focus-visible,
+.quiz-action-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.word-manager .form-actions {
+  grid-column: 2;
+}
+
+.word-manager .word-submit-button {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.word-manager .word-submit-button:hover {
+  background: var(--button-secondary-hover);
+}
+
+.word-manager .word-submit-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+#word-tags {
+  position: relative;
+  color: var(--input-text);
+}
+
+#word-tags summary {
+  padding: 0.55rem;
+  cursor: pointer;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--input-bg);
+}
+
+#word-tags #tags {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 2;
+  min-width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px 0;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--bg-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+#word-tags .tag-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+#word-tags .tag-filter-option input {
+  width: auto;
+  min-width: auto;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+#word-tags .tag-filter-option:hover {
+  background: var(--input-bg);
+}
+
+@media (max-width: 600px) {
+  .word-manager form {
+    grid-template-columns: minmax(6rem, 1fr) minmax(0, 2fr);
+  }
+
+  .word-manager form > label > span {
+    text-align: left;
+  }
+}
