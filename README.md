@@ -15,3 +15,17 @@ To run a release build during development (without building installers), use `ta
 
 To build and run the app for production, use `tauri build`
 This creates installer files (NSIS, WiX) and a standalone executable at `src-tauri/target/release/app.exe` that you can run directly.
+
+### Tests
+
+Run the JavaScript unit tests:
+
+```sh
+npm test
+```
+
+Run the Rust unit tests:
+
+```sh
+cargo test --manifest-path src-tauri/Cargo.toml
+```

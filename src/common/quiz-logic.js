@@ -11,24 +11,14 @@
 // ============================================================================
 
 /**
- * Replace all &#number; by corresponding ASCII letter
+ * Replace all &#number; by the corresponding character, leaving the rest of
+ * the text untouched.
  * @param {string} string - The string we want to handle
- * @warn Untested. Might not work as expected
  */
 function ampersandUnescape(string) {
-    const rx0 = /[^&]*/;
-    const rx = /&#(\\d*);([^&]*)/g;
-    let res = '';
-    let match = rx0.exec(string)
-    if (match) {
-        res += match[0]
-
-        match = string.substr(match.index).matchAll(rx)
-        for (let i = 0; i < match.length; i++) {
-            res += String.fromCharCode(match[i][1]) + match[i][2]
-        }
-    }
-    return res;
+    return string.replace(/&#(\d+);/g, (entity, code) =>
+        String.fromCharCode(Number(code))
+    );
 }
 
 const diacriticLetters =

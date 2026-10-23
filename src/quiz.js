@@ -70,8 +70,10 @@ async function initQuiz() {
         const canManageWords =
             !remote ||
             (status.isLoggedIn && status.username === 'clemanglaise_admin');
+        const wordId = Number(quizState.wordId);
+        const hasWord = Number.isInteger(wordId) && wordId > 0;
         addWordLink.hidden = !canManageWords;
-        editCurrentWordButton.hidden = !canManageWords || !quizState.wordId;
+        editCurrentWordButton.hidden = !canManageWords || !hasWord;
     };
     updateWordActions(await authSession.getStatus({ forceRefresh: true }));
     authSession.onChange(updateWordActions);

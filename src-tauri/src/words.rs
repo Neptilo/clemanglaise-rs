@@ -347,7 +347,7 @@ fn parse_words(body: &str, list_id: i32) -> Result<Vec<Word>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_remote_word;
+    use super::{parse_remote_word, parse_tags, parse_words};
 
     #[test]
     fn remote_word_response_without_list_id_is_completed() {
@@ -362,6 +362,50 @@ mod tests {
     fn remote_word_response_for_another_id_is_rejected() {
         let body = r#"{"id":10,"word":"chat","meaning":"cat","nature":"n","pronunciation":"sha","comment":"","example":"","hint":"","tag_ids":[]}"#;
         assert!(parse_remote_word(body, 4, 9).is_err());
+    }
+
+    #[test]
+    fn word_list_response_is_read_in_nine_line_chunks() {
+        let body = "1\nchat\ncat\nsha\nn\ncomment\nexample\nhint\n2, 3\n\
+                    2\nchien\ndog\nshya\nn\n\n\n\n4";
+        let words = parse_words(body, 4).expect("valid word list");
+        assert_eq!(words.len(), 2);
+
+        assert_eq!(words[0].id, 1);
+        assert_eq!(words[0].list_id, 4);
+        assert_eq!(words[0].word, "chat");
+        assert_eq!(words[0].meaning, "cat");
+        assert_eq!(words[0].pronunciation, "sha");
+        assert_eq!(words[0].nature, "n");
+        assert_eq!(words[0].comment, "comment");
+        assert_eq!(words[0].example, "example");
+        assert_eq!(words[0].hint, "hint");
+        assert_eq!(words[0].tag_ids, vec![2, 3]);
+
+        assert_eq!(words[1].id, 2);
+        assert_eq!(words[1].word, "chien");
+        assert_eq!(words[1].tag_ids, vec![4]);
+    }
+
+    #[test]
+    fn word_list_response_with_a_partial_chunk_is_rejected() {
+        let body = "1\nchat\ncat\nsha\nn\ncomment\nexample\nhint\n";
+        assert!(parse_words(body, 4).is_err());
+    }
+
+    #[test]
+    fn tag_list_response_is_read_in_two_line_chunks() {
+        let tags = parse_tags("2\nNouns\n3\nVerbs\n").expect("valid tag list");
+        assert_eq!(tags.len(), 2);
+        assert_eq!(tags[0].id, 2);
+        assert_eq!(tags[0].name, "Nouns");
+        assert_eq!(tags[1].id, 3);
+        assert_eq!(tags[1].name, "Verbs");
+    }
+
+    #[test]
+    fn tag_list_response_with_an_odd_line_count_is_rejected() {
+        assert!(parse_tags("2\nNouns\n3\n").is_err());
     }
 }
 
