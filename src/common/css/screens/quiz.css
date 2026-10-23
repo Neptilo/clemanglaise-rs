@@ -8,9 +8,6 @@
   gap: 8px;
   margin-bottom: 12px;
 }
-#quiz-actions [hidden] {
-  display: none !important;
-}
 
 .quiz-action-button {
   display: inline-grid;

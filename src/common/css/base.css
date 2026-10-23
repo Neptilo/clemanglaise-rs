@@ -3,6 +3,13 @@
  * Only bare HTML element selectors — no class or ID selectors.
  */
 
+/* The hidden attribute must win everywhere: component rules that set an
+   explicit display (grid, flex, inline-block) would otherwise override the
+   user-agent default and leave a hidden control visible. */
+[hidden] {
+    display: none !important;
+}
+
 body {
     font-family: Verdana, Geneva, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     margin: 0;

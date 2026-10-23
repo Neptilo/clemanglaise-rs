@@ -50,6 +50,14 @@ let loadNewQuestion;
 async function initQuiz() {
     quizState = createQuizState();
     const editorParams = `list_id=${listId}&remote=${remote}`;
+    // The template ships this button hidden; this screen is the only place
+    // that enables it, because the main menu belongs to this navigation.
+    const backToMenuButton = document.getElementById('back-to-menu');
+    backToMenuButton.hidden = false;
+    backToMenuButton.addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+
     const addWordLink = document.getElementById('add-word-link');
     const editCurrentWordButton = document.getElementById('edit-current-word');
     addWordLink.href = `edit.html?${editorParams}&mode=add`;

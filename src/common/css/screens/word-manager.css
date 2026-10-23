@@ -42,6 +42,7 @@
   min-height: 4rem;
 }
 
+/* Shared top-left placement for screen-level back buttons (editor, quiz). */
 .editor-back-button {
   position: fixed;
   top: 10px;

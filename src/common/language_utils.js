@@ -1,4 +1,4 @@
-// Common language utilities for both web and Tauri versions
+// Language code to display-name mapping, shared by every client.
 
 const LANGUAGE_NAMES = {
   'en': 'English',
