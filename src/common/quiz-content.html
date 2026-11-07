@@ -35,9 +35,12 @@
     aria-label="{{Filter by tags}}"
   ></div>
 </details>
-<p>
+<p id="translation-instruction">
   {{Translate: }}<b class="word"></b> {{into}}
   <span id="target-language"></span>.
+</p>
+<p id="pronunciation-instruction" hidden>
+  <b class="word"></b> — {{Write the pronunciation of this in ASCII.}}
 </p>
 <p><em id="hint"></em></p>
 <div id="input-row">
@@ -50,6 +53,7 @@
   <p>
     <b class="word"></b><em id="part-of-speech"></em>:<b id="pronunciation"></b>
   </p>
+  <p id="translation" hidden></p>
   <p><em id="comment"></em></p>
   <p><em id="example"></em></p>
   <button class="ok-button" id="validate-answer-button">{{OK}}</button>

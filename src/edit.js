@@ -150,6 +150,12 @@ function bindEditor() {
         data.tag_ids = [
             ...document.querySelectorAll("#tags input:checked"),
         ].map((input) => Number(input.value));
+        // Arabic pronunciations are stored in DIN 31635, so a quiz answer typed
+        // in ASCII can be matched. Other languages are stored as typed.
+        data.pronunciation = normalizePronunciationForSave(
+            data.pronunciation || "",
+            window.destinationLanguage,
+        );
         delete data.gender;
         try {
             await invoke("save_word", { word: data });

@@ -1,41 +1,49 @@
 // Load shared modules
+const dstCode = new URLSearchParams(window.location.search).get('dst') || '';
+
 const languageUtilsScript = document.createElement('script');
 languageUtilsScript.src = 'common/language_utils.js';
 languageUtilsScript.onload = () => {
     const targetLanguageElem = document.getElementById('target-language');
-    if (targetLanguageElem) {
-        const dstCode = getUrlParameter('dst');
-        if (dstCode) {
-            targetLanguageElem.textContent = getLanguageName(dstCode);
-        }
+    if (targetLanguageElem && dstCode) {
+        targetLanguageElem.textContent = getLanguageName(dstCode);
     }
 };
 document.head.appendChild(languageUtilsScript);
 
+const textUtilsScript = document.createElement('script');
+textUtilsScript.src = 'common/text-utils.js';
+
 const quizLogicScript = document.createElement('script');
 quizLogicScript.src = 'common/quiz-logic.js';
 quizLogicScript.onload = () => {
+    quizElements = collectQuizElements();
+    correctTranslationElem = quizElements.meaningElem;
+    applyLanguageInstruction(dstCode);
+
     const tagFilterScript = document.createElement('script');
     tagFilterScript.src = 'common/quiz-tag-filter.js';
     tagFilterScript.onload = initQuiz;
     document.head.appendChild(tagFilterScript);
 };
-document.head.appendChild(quizLogicScript);
+
+// text-utils.js must load before quiz-logic.js, which calls its functions.
+textUtilsScript.onload = () => {
+    document.head.appendChild(quizLogicScript);
+};
+document.head.appendChild(textUtilsScript);
 
 // get constant DOM elements
-const wordElems = document.getElementsByClassName('word');
-const partOfSpeechElem = document.getElementById('part-of-speech');
-const pronunciationElem = document.getElementById('pronunciation');
-const commentElem = document.getElementById('comment');
-const exampleElem = document.getElementById('example');
-const hintElem = document.getElementById('hint');
+// The element map comes from the shared module, which this script loads
+// asynchronously, so it is filled once that module is ready.
+let quizElements;
+let correctTranslationElem;
 const input = document.getElementById('input');
 const validateQuestionButton = document.getElementById(
     'validate-question-button',
 );
 const validateAnswerButton = document.getElementById('validate-answer-button');
 const correctEntryElem = document.getElementById('answer');
-const correctTranslationElem = document.getElementById('meaning');
 const message = document.getElementById('message');
 const tagFilter = document.getElementById('tag-filter');
 
@@ -100,13 +108,8 @@ async function initQuiz() {
             );
 
             quizState.wordId = processQuestionResponse(responseText, {
-                wordElems,
-                meaningElem: correctTranslationElem,
-                partOfSpeechElem,
-                commentElem,
-                exampleElem,
-                pronunciationElem,
-                hintElem,
+                ...quizElements,
+                language: dstCode,
             });
             updateWordActions(await authSession.getStatus());
         } catch (error) {
@@ -146,6 +149,7 @@ async function initQuiz() {
         quizState.correct = checkAnswer(
             input.value,
             correctTranslationElem.innerHTML,
+            dstCode,
         );
         message.innerHTML = quizState.correct
             ? '<b style="color:green;">Correct!</b>'
