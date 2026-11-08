@@ -105,8 +105,43 @@
   cursor: pointer;
 }
 
+/* Answer block, laid out like the original view: the word on the left, the
+   details stacked on the right, and the OK button on the word's line. The
+   rows are siblings with no margin of their own, so space them here. */
+#answer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 16px;
+  margin-top: 16px;
+  align-items: baseline;
+}
+
 #meaning {
-  float: left;
+  grid-column: 1;
+  grid-row: 1 / -1;
+  align-self: center;
+  margin: 0;
+  line-height: 1.1;
+}
+
+#answer > :not(#meaning):not(#validate-answer-button) {
+  grid-column: 2;
+  margin: 0 0 8px;
+}
+
+#validate-answer-button {
+  grid-column: 3;
+  grid-row: 2;
+  align-self: center;
+  margin: 0;
+}
+
+/* The target-language word shown here is the answer itself: print it large.
+   Only languages answered with a pronunciation display this line, so no list
+   of languages is needed. */
+#answer #translation {
+  font-size: 2em;
+  line-height: 1.3;
 }
 
 #input-row {
