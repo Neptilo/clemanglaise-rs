@@ -243,6 +243,44 @@ test("the pool never drops below one word", () => {
     }
 });
 
+test("the pool size stays a whole number once the shrink goes fractional", () => {
+    // The size is a count of words a caller can select, so a fraction reaching it
+    // is a defect in itself. Shrinking from 20 used to produce 15.555….
+    const state = createQuizState();
+    state.correct = true;
+    state.updateListSize();
+    state.correct = false;
+    state.updateListSize();
+    assert.equal(state.listSizeLimit, 20);
+
+    for (let i = 0; i < 20; i++) {
+        state.correct = i % 2 === 0;
+        state.updateListSize();
+        assert.ok(
+            Number.isInteger(state.listSizeLimit),
+            `pool size ${state.listSizeLimit} is not a whole number after ${
+                state.askedInThisSession
+            } answers`,
+        );
+    }
+});
+
+test("a rounded shrink keeps the pool usable instead of collapsing it", () => {
+    // Rounding must not turn a slow shrink into a drop to the floor: two wrong
+    // answers in a row used to leave a fraction, and truncating it would have
+    // discarded the words the pool still allows.
+    const state = createQuizState();
+    state.correct = true;
+    state.updateListSize();
+
+    state.correct = false;
+    state.updateListSize();
+    assert.equal(state.listSizeLimit, 20);
+
+    state.updateListSize();
+    assert.equal(state.listSizeLimit, 16);
+});
+
 test("resetForNewQuestion clears the last result only", () => {
     const state = createQuizState();
     state.correct = true;

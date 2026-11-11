@@ -327,9 +327,13 @@ function createQuizState() {
          */
         updateListSize() {
             const sizeIncrement = this.listSizeLimit / ++this.askedInThisSession;
-            this.listSizeLimit = this.correct ?
+            const nextSize = this.correct ?
                 this.listSizeLimit + Math.max(1, sizeIncrement) :
-                Math.max(1, this.listSizeLimit - 2 / 3 * sizeIncrement);
+                this.listSizeLimit - 2 / 3 * sizeIncrement;
+            // The pool size is read by callers as a count, and the division above
+            // leaves a fraction as soon as it is applied twice, so round here and
+            // keep the value a whole number from the start.
+            this.listSizeLimit = Math.max(1, Math.round(nextSize));
         },
 
         /**
