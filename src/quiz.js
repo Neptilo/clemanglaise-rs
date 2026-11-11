@@ -133,7 +133,9 @@ async function initQuiz() {
             ? '<b style="color:green;">Correct!</b>'
             : '<b style="color:red;">Wrong!</b>';
 
-        correctEntryElem.removeAttribute('hidden');
+        // One OK button at a time: the one next to the field goes away and the
+        // answer's own button takes over.
+        setAnswerVisible(true);
 
         // set score without changing page
         try {
@@ -149,7 +151,7 @@ async function initQuiz() {
 
     validateAnswerButton.onclick = () => {
         // clear everything
-        correctEntryElem.setAttribute('hidden', '');
+        setAnswerVisible(false);
         input.value = '';
 
         // update list size depending on whether the last answer was correct

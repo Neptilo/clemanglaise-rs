@@ -180,6 +180,13 @@
   box-shadow: 0 0 5px var(--input-focus-shadow);
 }
 
+/* While the answer is shown the field is disabled: it must not look editable,
+   since the answer has already been compared. */
+#input:disabled {
+  color: var(--text-secondary);
+  cursor: default;
+}
+
 #hint {
   color: var(--text-secondary);
 }

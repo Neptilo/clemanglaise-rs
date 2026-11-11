@@ -121,6 +121,33 @@ function applyLanguageInstruction(language) {
 }
 
 /**
+ * Switch the quiz screen between asking and showing the answer.
+ *
+ * The screen carries one OK button per step: one next to the input, one inside
+ * the answer block. Only the button matching the current step may be visible,
+ * so showing the answer withdraws the question's button and disables its
+ * field: a player reading the result can neither submit again by mistake nor
+ * overwrite the answer being compared. Focus follows the visible button, so
+ * Enter keeps working without a mouse.
+ * @param {boolean} isShown - True to show the answer block, false to ask again
+ */
+function setAnswerVisible(isShown) {
+    const answerElem = document.getElementById("answer");
+    const questionButton = document.getElementById("validate-question-button");
+    const answerButton = document.getElementById("validate-answer-button");
+    const input = document.getElementById("input");
+
+    // The answer's own button is withdrawn with its block; the question's is
+    // the one that has to be hidden on its own.
+    if (answerElem) answerElem.hidden = !isShown;
+    if (questionButton) questionButton.hidden = isShown;
+    if (input) input.disabled = isShown;
+
+    const focusTarget = isShown ? answerButton : input;
+    if (focusTarget) focusTarget.focus();
+}
+
+/**
  * Normalisation applied to a stored answer, per language. The player's answer
  * goes through the same table, so the two sides can never drift apart. Arabic
  * is the one exception: a typed answer is ASCII and needs transcribing first,
@@ -163,18 +190,10 @@ function standardizePlayerAnswer(answer, language) {
 }
 
 /**
- * Normalise one stored answer the same way the player's is.
- * @param {string} answer - One entry of the stored answer list
- * @param {string} [language] - Target language code
- * @returns {string} The normalised answer
- */
-function standardizeStoredAnswer(answer, language) {
-    return standardizeTypedAnswer(answer, language);
-}
-
-/**
  * The half the two forms share: a language-specific normaliser when the
- * language has one, and the default text normalisation otherwise.
+ * language has one, and the default text normalisation otherwise. A stored
+ * answer is normalised through this same function, so the two sides of the
+ * comparison can never drift apart.
  * @param {string} answer - An answer, typed or stored
  * @param {string} [language] - Target language code
  * @returns {string} The normalised answer
@@ -205,7 +224,7 @@ function checkAnswer(playerAnswer, correctAnswers, language) {
 
     const correctAnswerList = correctAnswers
         .split(",")
-        .map((answer) => standardizeStoredAnswer(answer.trim(), language));
+        .map((answer) => standardizeTypedAnswer(answer.trim(), language));
 
     return correctAnswerList.includes(standardizedAnswer);
 }
@@ -334,13 +353,6 @@ function createQuizState() {
             // leaves a fraction as soon as it is applied twice, so round here and
             // keep the value a whole number from the start.
             this.listSizeLimit = Math.max(1, Math.round(nextSize));
-        },
-
-        /**
-         * Reset for new question
-         */
-        resetForNewQuestion() {
-            this.correct = false;
         }
     };
 }
@@ -358,5 +370,6 @@ if (typeof module !== 'undefined' && module.exports) {
         createQuizState,
         getAnswerField,
         processQuestionResponse,
+        setAnswerVisible,
     };
 }

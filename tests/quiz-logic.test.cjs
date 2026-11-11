@@ -14,6 +14,7 @@ const {
     collectQuizElements,
     createQuizState,
     processQuestionResponse,
+    setAnswerVisible,
 } = require(quizLogicPath);
 const {
     ampersandUnescape,
@@ -281,15 +282,6 @@ test("a rounded shrink keeps the pool usable instead of collapsing it", () => {
     assert.equal(state.listSizeLimit, 16);
 });
 
-test("resetForNewQuestion clears the last result only", () => {
-    const state = createQuizState();
-    state.correct = true;
-    state.updateListSize();
-    state.resetForNewQuestion();
-    assert.equal(state.correct, false);
-    assert.equal(state.askedInThisSession, 1);
-});
-
 test("processQuestionResponse fills elements and returns the word id", () => {
     const body = [
         "42",
@@ -411,4 +403,32 @@ test("processQuestionResponse answers with the pronunciation in the languages th
     processQuestionResponse(body, defaultElements);
     assert.equal(defaultElements.meaningElem.innerHTML, "big");
     assert.equal(defaultElements.expectedAnswerElem.innerHTML, "big");
+});
+
+test("setAnswerVisible leaves exactly one OK button reachable per step", () => {
+    const element = (id) => ({ id, hidden: false, disabled: false, focus() {} });
+    const elements = {
+        answer: element("answer"),
+        "validate-question-button": element("validate-question-button"),
+        "validate-answer-button": element("validate-answer-button"),
+        input: element("input"),
+    };
+    global.document = { getElementById: (id) => elements[id] ?? null };
+    try {
+        // Showing the answer withdraws the question's button and locks the
+        // field: the answer has been compared already.
+        setAnswerVisible(true);
+        assert.equal(elements.answer.hidden, false);
+        assert.equal(elements["validate-question-button"].hidden, true);
+        assert.equal(elements["validate-answer-button"].hidden, false);
+        assert.equal(elements.input.disabled, true);
+
+        // Asking again is the mirror image, field included.
+        setAnswerVisible(false);
+        assert.equal(elements.answer.hidden, true);
+        assert.equal(elements["validate-question-button"].hidden, false);
+        assert.equal(elements.input.disabled, false);
+    } finally {
+        delete global.document;
+    }
 });
