@@ -20,14 +20,11 @@
       .then(html => {
         html = html.replace(/\{\{(.*?)\}\}/g, '$1');
         document.getElementById('quiz-content').innerHTML = html;
-        const filterScript = document.createElement('script');
-        filterScript.src = 'common/quiz-tag-filter.js';
-        filterScript.onload = () => {
-          const quizScript = document.createElement('script');
-          quizScript.src = 'quiz.js';
-          document.body.appendChild(quizScript);
-        };
-        document.head.appendChild(filterScript);
+        // quiz.js loads the shared modules and the tag filter, then starts the
+        // quiz, so the filter must not be loaded here as well.
+        const quizScript = document.createElement('script');
+        quizScript.src = 'quiz.js';
+        document.body.appendChild(quizScript);
       })
       .catch(error => console.error('Error loading quiz content:', error));
   </script>

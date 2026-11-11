@@ -1,43 +1,21 @@
 // Load shared modules
 const dstCode = new URLSearchParams(window.location.search).get('dst') || '';
 
-const languageUtilsScript = document.createElement('script');
-languageUtilsScript.src = 'common/language_utils.js';
-languageUtilsScript.onload = () => {
-    const targetLanguageElem = document.getElementById('target-language');
-    if (targetLanguageElem && dstCode) {
-        targetLanguageElem.textContent = getLanguageName(dstCode);
-    }
-};
-document.head.appendChild(languageUtilsScript);
-
-const textUtilsScript = document.createElement('script');
-textUtilsScript.src = 'common/text-utils.js';
-
-const quizLogicScript = document.createElement('script');
-quizLogicScript.src = 'common/quiz-logic.js';
-quizLogicScript.onload = () => {
+const quizLoader = document.createElement('script');
+quizLoader.src = 'common/quiz-loader.js';
+quizLoader.onload = () => loadQuizModules(() => {
     quizElements = collectQuizElements();
-    correctTranslationElem = quizElements.meaningElem;
+    correctAnswerElem = quizElements.expectedAnswerElem;
     applyLanguageInstruction(dstCode);
-
-    const tagFilterScript = document.createElement('script');
-    tagFilterScript.src = 'common/quiz-tag-filter.js';
-    tagFilterScript.onload = initQuiz;
-    document.head.appendChild(tagFilterScript);
-};
-
-// text-utils.js must load before quiz-logic.js, which calls its functions.
-textUtilsScript.onload = () => {
-    document.head.appendChild(quizLogicScript);
-};
-document.head.appendChild(textUtilsScript);
+    initQuiz();
+});
+document.head.appendChild(quizLoader);
 
 // get constant DOM elements
 // The element map comes from the shared module, which this script loads
 // asynchronously, so it is filled once that module is ready.
 let quizElements;
-let correctTranslationElem;
+let correctAnswerElem;
 const input = document.getElementById('input');
 const validateQuestionButton = document.getElementById(
     'validate-question-button',
@@ -148,7 +126,7 @@ async function initQuiz() {
     validateQuestionButton.onclick = async () => {
         quizState.correct = checkAnswer(
             input.value,
-            correctTranslationElem.innerHTML,
+            correctAnswerElem.innerHTML,
             dstCode,
         );
         message.innerHTML = quizState.correct
