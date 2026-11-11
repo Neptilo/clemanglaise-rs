@@ -14,7 +14,6 @@ body {
     font-family: Verdana, Geneva, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     margin: 0;
     padding: 4%;
-    padding-top: 15%;
     background-color: var(--bg-color);
     color: var(--text-color);
 }

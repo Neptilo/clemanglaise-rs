@@ -54,10 +54,28 @@ function resize(node) {
 
 var ul = document.getElementsByTagName('ul')[0];
 
-window.onresize = function(event) {
+// The grid is absolutely positioned, so it does not take part in the page
+// flow: its height must be the space left under whatever the page shows above
+// it (a heading, the online/offline switch), not the whole viewport.
+function fitToViewport() {
     var margin = 32;
-    ul.style.width = window.innerWidth - 2 * margin + 'px';
-    ul.style.height = window.innerHeight - 2 * margin + 'px';
+    var bodyStyle = getComputedStyle(document.body);
+    var contentWidth =
+        document.body.clientWidth -
+        parseFloat(bodyStyle.paddingLeft) -
+        parseFloat(bodyStyle.paddingRight);
+    ul.style.width = contentWidth - 2 * margin + 'px';
+    // The page also ends with the body's bottom padding, so the grid may only
+    // claim what is left once that padding and the margin are accounted for.
+    var top = ul.getBoundingClientRect().top + window.scrollY;
+    var available =
+        window.innerHeight -
+        top -
+        parseFloat(bodyStyle.paddingBottom) -
+        margin;
+    ul.style.height = Math.max(available, 0) + 'px';
     resize(ul);
-};
-window.onresize();
+}
+
+window.onresize = fitToViewport;
+fitToViewport();
