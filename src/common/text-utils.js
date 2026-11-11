@@ -142,6 +142,123 @@ function stripArabicAnswerPunctuation(string) {
 }
 
 /**
+ * Normalise a Japanese answer. The player types Hepburn rōmaji, which stores
+ * and matches either with a macron ("kōkūbin") or with the vowel doubled
+ * ("kookuubin"), so a macron is folded to its doubled vowel and both agree.
+ * Every character that is not a Latin letter is dropped, which lets "futatsu"
+ * and "fu-ta-tsu" agree.
+ *
+ * Only macrons appear in rōmaji, so only macrons are folded: an acute or grave
+ * accent is not a long vowel and must not be read as one.
+ * @param {string} string - A rōmaji answer
+ * @returns {string} The answer without long-vowel marks or separators
+ */
+function standardizeJapaneseAnswer(string) {
+    return ampersandUnescape(string)
+        .toLowerCase()
+        .replace(/ā/g, "aa")
+        .replace(/ī/g, "ii")
+        .replace(/ū/g, "uu")
+        .replace(/ē/g, "ee")
+        .replace(/ō/g, "oo")
+        .replace(/\u2019|'/g, "")
+        .replace(/[^a-z]/g, "");
+}
+
+// ============================================================================
+// Chinese: pinyin with tone marks
+// ============================================================================
+
+// Tone marks per base vowel, indexed by tone number (0 keeps the plain vowel).
+// "ü" is written "v", since a Latin keyboard has no ü key.
+const PINYIN_ACCENTS = {
+    a: ["a", "ā", "á", "ǎ", "à"],
+    e: ["e", "ē", "é", "ě", "è"],
+    i: ["i", "ī", "í", "ǐ", "ì"],
+    o: ["o", "ō", "ó", "ǒ", "ò"],
+    u: ["u", "ū", "ú", "ǔ", "ù"],
+    v: ["ü", "ǖ", "ǘ", "ǚ", "ǜ"],
+};
+
+// Every vowel form a pinyin syllable may carry, tone marks included.
+const PINYIN_VOWELS = "aeiouüāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜv";
+
+/**
+ * One pinyin syllable: an optional initial, the nucleus vowel and an optional
+ * coda, followed by an optional tone number and trailing punctuation.
+ */
+const PINYIN_SYLLABLE = new RegExp(
+    `([bcdfgj-np-tw-z]?h?[iu]?)([${PINYIN_VOWELS}r])([iounr]?g?)(\\d?)(\\W*)`,
+    "gi"
+);
+
+/**
+ * Convert the tone numbers of a pinyin answer into tone marks, so "wen2hua4"
+ * becomes "wénhuà". The number is optional, so a transcription written with
+ * marks already passes through unchanged.
+ * @param {string} string - A pinyin answer, with or without tone numbers
+ * @param {string} separator - What to put between syllables; "" drops it
+ * @returns {string} The answer with tone marks
+ */
+function numbersToAccents(string, separator = "") {
+    let result = "";
+    let separation = "";
+    let match;
+    PINYIN_SYLLABLE.lastIndex = 0;
+
+    while ((match = PINYIN_SYLLABLE.exec(string)) !== null) {
+        result += separation;
+        const [, initial, nucleus, coda, number, trailing] = match;
+        const tone = Number(number) || 0;
+        const marked = PINYIN_ACCENTS[nucleus[0].toLowerCase()]?.[tone] ?? nucleus;
+        // A tone mark belongs to the vowel, so its case follows the vowel's.
+        result +=
+            initial +
+            (nucleus[0] === nucleus[0].toLowerCase()
+                ? marked
+                : marked.toUpperCase()) +
+            coda;
+        separation = separator === "" ? trailing : separator;
+    }
+
+    return result;
+}
+
+// Syllable shapes. The order is deliberate: "er" must match before a bare "e",
+// a full syllable (including its coda) before a lone "r", and an apostrophe is
+// a boundary to drop rather than a syllable.
+const PINYIN_SEPARATION = new RegExp(
+    `[${"eēéěè"}]r` + // "er" as a standalone syllable, before "e" alone
+        `|[bcdfgj-np-tw-z]?h?[iu]?[${PINYIN_VOWELS}][iu]?(?:ng?(?![${PINYIN_VOWELS}]))?` + // a full syllable, including a coda
+        `|r` + // a syllabic r left on its own
+        `|'`, // an apostrophe separates, and is dropped
+    "gi"
+);
+
+/**
+ * Split a pinyin answer into its syllables, spaced the way a dictionary writes
+ * them: "wénhuà" becomes "wén huà". A player may type the syllables joined,
+ * spaced or apostrophised; the comparison then sees the same form either way.
+ * @param {string} string - A pinyin answer
+ * @param {string} separator - What to put between syllables
+ * @returns {string} The syllables joined by the separator
+ */
+function separatePinyin(string, separator = " ") {
+    const syllables = [];
+    let match;
+    PINYIN_SEPARATION.lastIndex = 0;
+
+    while ((match = PINYIN_SEPARATION.exec(string)) !== null) {
+        const syllable = match[0];
+        // An apostrophe only marks a syllable boundary.
+        if (syllable === "'") continue;
+        syllables.push(syllable);
+    }
+
+    return syllables.join(separator);
+}
+
+/**
  * Normalise a pronunciation before it is stored. Arabic is stored in
  * DIN 31635, so that a pronunciation typed in ASCII can still be matched by a
  * quiz answer typed in ASCII. Other languages are stored exactly as typed.
@@ -164,8 +281,11 @@ if (typeof module !== 'undefined' && module.exports) {
         ampersandUnescape,
         asciiToDin,
         normalizePronunciationForSave,
+        numbersToAccents,
         removeDiacritics,
+        separatePinyin,
         standardizeArabicAnswer,
+        standardizeJapaneseAnswer,
         standardizeString,
         stripArabicAnswerPunctuation,
     };

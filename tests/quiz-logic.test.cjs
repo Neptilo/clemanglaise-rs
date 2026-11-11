@@ -13,7 +13,6 @@ const {
     checkAnswer,
     collectQuizElements,
     createQuizState,
-    getAnswerField,
     processQuestionResponse,
 } = require(quizLogicPath);
 const {
@@ -138,11 +137,32 @@ test("an empty answer is never correct", () => {
     assert.equal(checkAnswer("   ", "chat", "fr"), false);
 });
 
-test("getAnswerField asks for the pronunciation only in Arabic", () => {
-    assert.equal(getAnswerField("ar"), "pronunciation");
-    assert.equal(getAnswerField("fr"), "meaning");
-    assert.equal(getAnswerField(undefined), "meaning");
-    assert.equal(getAnswerField(""), "meaning");
+test("checkAnswer accepts a pinyin answer for Chinese with or without tone numbers", () => {
+    // The player types pinyin, either with tone numbers or with tone marks.
+    assert.equal(checkAnswer("wen2hua4", "wénhuà", "zh"), true);
+    assert.equal(checkAnswer("wénhuà", "wénhuà", "zh"), true);
+    assert.equal(checkAnswer("wen2 hua4", "wénhuà", "zh"), true);
+    // Syllable spacing is ignored: the comparison spaces both sides the same way.
+    assert.equal(checkAnswer("wén huà", "wénhuà", "zh"), true);
+    assert.equal(checkAnswer("wen2hua4", "wén huà", "zh"), true);
+    // A wrong word is rejected...
+    assert.equal(checkAnswer("ni3hao3", "wénhuà", "zh"), false);
+    // ...and so is a missing tone: the tone is the point of pinyin.
+    assert.equal(checkAnswer("wenhua", "wénhuà", "zh"), false);
+});
+
+test("checkAnswer accepts a rōmaji answer for Japanese", () => {
+    // Japanese is answered in Hepburn rōmaji, typed on a Latin keyboard.
+    assert.equal(checkAnswer("futatsu", "futatsu", "ja"), true);
+    assert.equal(checkAnswer("  Futatsu ", "futatsu", "ja"), true);
+    // A macron and the doubled vowel are the same long vowel, whichever side
+    // the mark is written on.
+    assert.equal(checkAnswer("kookuubin", "kōkūbin", "ja"), true);
+    // Separators the player types are ignored.
+    assert.equal(checkAnswer("fu-ta-tsu", "futatsu", "ja"), true);
+    assert.equal(checkAnswer("gomen nasai", "gomen'nasai", "ja"), true);
+    // A short vowel is still significant: it is not the long one.
+    assert.equal(checkAnswer("kakkoi", "kakkoī", "ja"), false);
 });
 
 test("normalizePronunciationForSave stores Arabic in DIN 31635", () => {
@@ -176,15 +196,15 @@ test("collectQuizElements maps every template id the response fills", () => {
         assert.deepEqual(Object.keys(elements).sort(), [
             "commentElem",
             "exampleElem",
+            "expectedAnswerElem",
             "hintElem",
             "meaningElem",
             "partOfSpeechElem",
             "pronunciationElem",
-            "translationElem",
             "wordElems",
         ]);
         assert.equal(elements.meaningElem.id, "meaning");
-        assert.equal(elements.translationElem.id, "translation");
+        assert.equal(elements.expectedAnswerElem.id, "expected-answer");
         // The word class is used by several elements on the page.
         assert.equal(elements.wordElems[0].className, "word");
     } finally {
@@ -252,7 +272,7 @@ test("processQuestionResponse fills elements and returns the word id", () => {
         partOfSpeechElem: { innerHTML: "" },
         commentElem: { innerHTML: "" },
         exampleElem: { innerHTML: "" },
-        pronunciationElem: { innerHTML: "" },
+        pronunciationElem: { textContent: "", hidden: false },
         hintElem: { innerHTML: "" },
     };
 
@@ -263,11 +283,52 @@ test("processQuestionResponse fills elements and returns the word id", () => {
     assert.equal(elements.partOfSpeechElem.innerHTML, "noun");
     assert.equal(elements.commentElem.innerHTML, "a comment");
     assert.equal(elements.exampleElem.innerHTML, "an example");
-    assert.equal(elements.pronunciationElem.innerHTML, "[sha]");
+    // A language that does not ask for the pronunciation shows an IPA reading
+    // in brackets, prefixed by the separator.
+    assert.equal(elements.pronunciationElem.textContent, ": [sha]");
     assert.equal(elements.hintElem.innerHTML, "a hint");
 });
 
-test("processQuestionResponse answers with the pronunciation in Arabic", () => {
+test("processQuestionResponse brackets the pronunciation the way the language is written", () => {
+    const body = ["7", "كبير", "big", "adj", "", "", "kabīr", "", ""].join("\n");
+
+    const makeElements = (language) => ({
+        wordElems: [],
+        meaningElem: { innerHTML: "" },
+        pronunciationElem: { textContent: "", hidden: false },
+        language,
+    });
+
+    // A language answered with a transcription gets slashes...
+    const arabic = makeElements("ar");
+    processQuestionResponse(body, arabic);
+    assert.equal(arabic.pronunciationElem.textContent, ": /kabīr/");
+    assert.equal(arabic.pronunciationElem.hidden, false);
+
+    // ...while a language whose pronunciation is an IPA reading keeps brackets.
+    const french = makeElements("fr");
+    processQuestionResponse(body, french);
+    assert.equal(french.pronunciationElem.textContent, ": [kabīr]");
+});
+
+test("processQuestionResponse hides the brackets when there is no pronunciation", () => {
+    // An empty pronunciation field must not render as "[]" or leave the
+    // separator dangling after the part of speech.
+    const body = ["9", "chat", "cat", "noun", "", "", "", "", ""].join("\n");
+    const elements = {
+        wordElems: [],
+        meaningElem: { innerHTML: "" },
+        partOfSpeechElem: { innerHTML: "" },
+        pronunciationElem: { textContent: "", hidden: false },
+        language: "fr",
+    };
+
+    processQuestionResponse(body, elements);
+    assert.equal(elements.pronunciationElem.textContent, "");
+    assert.equal(elements.pronunciationElem.hidden, true);
+});
+
+test("processQuestionResponse answers with the pronunciation in the languages that ask for it", () => {
     const body = [
         "7",
         "كبير",
@@ -283,59 +344,33 @@ test("processQuestionResponse answers with the pronunciation in Arabic", () => {
     const makeElements = (language) => ({
         wordElems: [],
         meaningElem: { innerHTML: "" },
+        expectedAnswerElem: { innerHTML: "" },
         language,
     });
 
-    // Arabic asks for the pronunciation, so that is the expected answer...
+    // The large left column always shows the meaning.
     const arabicElements = makeElements("ar");
     processQuestionResponse(body, arabicElements);
-    assert.equal(arabicElements.meaningElem.innerHTML, "kabīr");
+    assert.equal(arabicElements.meaningElem.innerHTML, "big");
+    // The expected answer is kept apart from it, because Arabic is answered
+    // with the pronunciation.
+    assert.equal(arabicElements.expectedAnswerElem.innerHTML, "kabīr");
 
-    // ...while other languages keep asking for the translation.
+    // Japanese behaves the same way, and is answered in rōmaji.
+    const japaneseElements = makeElements("ja");
+    processQuestionResponse(body, japaneseElements);
+    assert.equal(japaneseElements.meaningElem.innerHTML, "big");
+    assert.equal(japaneseElements.expectedAnswerElem.innerHTML, "kabīr");
+
+    // Languages asking for the translation compare against the meaning itself.
     const frenchElements = makeElements("fr");
     processQuestionResponse(body, frenchElements);
     assert.equal(frenchElements.meaningElem.innerHTML, "big");
+    assert.equal(frenchElements.expectedAnswerElem.innerHTML, "big");
 
     // A response without a language keeps the previous behaviour.
     const defaultElements = makeElements(undefined);
     processQuestionResponse(body, defaultElements);
     assert.equal(defaultElements.meaningElem.innerHTML, "big");
-});
-
-test("processQuestionResponse shows the translation when Arabic answers the pronunciation", () => {
-    const body = ["7", "كبير", "big", "adj", "", "", "kabīr", "", ""].join("\n");
-
-    const arabic = {
-        wordElems: [],
-        meaningElem: { innerHTML: "" },
-        translationElem: { innerHTML: "", hidden: true },
-        language: "ar",
-    };
-    processQuestionResponse(body, arabic);
-    assert.equal(arabic.meaningElem.innerHTML, "kabīr");
-    assert.equal(arabic.translationElem.innerHTML, "big");
-    assert.equal(arabic.translationElem.hidden, false);
-
-    // Other languages already show the translation as the answer, so the extra
-    // line stays hidden.
-    const french = {
-        wordElems: [],
-        meaningElem: { innerHTML: "" },
-        translationElem: { innerHTML: "", hidden: false },
-        language: "fr",
-    };
-    processQuestionResponse(body, french);
-    assert.equal(french.translationElem.hidden, true);
-
-    // An Arabic word with no translation leaves the line hidden and empty
-    // rather than showing a blank line.
-    const emptyBody = ["8", "كبير", "", "adj", "", "", "kabīr", "", ""].join("\n");
-    const arabicWithoutMeaning = {
-        wordElems: [],
-        meaningElem: { innerHTML: "" },
-        translationElem: { innerHTML: "", hidden: false },
-        language: "ar",
-    };
-    processQuestionResponse(emptyBody, arabicWithoutMeaning);
-    assert.equal(arabicWithoutMeaning.translationElem.hidden, true);
+    assert.equal(defaultElements.expectedAnswerElem.innerHTML, "big");
 });

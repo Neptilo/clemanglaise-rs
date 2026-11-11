@@ -40,7 +40,9 @@
   <span id="target-language"></span>.
 </p>
 <p id="pronunciation-instruction" hidden>
-  <b class="word"></b> — {{Write the pronunciation of this in ASCII.}}
+  <b class="word"></b> — {{Write the pronunciation of this}}
+  <span id="pronunciation-language"></span> {{word in}}
+  <span id="transcription-name"></span>.
 </p>
 <p><em id="hint"></em></p>
 <div id="input-row">
@@ -51,10 +53,12 @@
   <h2 id="meaning"></h2>
   <p id="message"></p>
   <p>
-    <b class="word"></b> <em id="part-of-speech"></em>:<b id="pronunciation"></b>
+    <b class="word"></b> <em id="part-of-speech"></em><b id="pronunciation"></b>
   </p>
-  <p id="translation" hidden></p>
   <p><em id="comment"></em></p>
   <p><em id="example"></em></p>
   <button class="ok-button" id="validate-answer-button">{{OK}}</button>
+  <!-- What the typed answer is compared with. Hidden from the player: the
+       block shows the meaning, but an answer may be the pronunciation. -->
+  <span id="expected-answer" hidden></span>
 </div>
