@@ -11,6 +11,15 @@
     color-scheme: light dark;
 }
 
+/* ─── Layout ───────────────────────────────────────────────────────────────── */
+:root {
+    /* Band reserved at the top of the page for the fixed corner controls
+       (login corner top-right, screen back button top-left): they are 40px
+       tall, inset 10px from the edge, plus 10px of breathing room. Page
+       content starts below this band so it never slides under them. */
+    --corner-control-clearance: 60px;
+}
+
 /* ─── Light mode (default) ─────────────────────────────────────────────────── */
 :root {
     /* Palette aliases: raw values that appear in multiple semantic tokens */

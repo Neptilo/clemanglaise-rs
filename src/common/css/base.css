@@ -14,6 +14,11 @@ body {
     font-family: Verdana, Geneva, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     margin: 0;
     padding: 4%;
+    /* The corner controls (login corner, screen back button) are fixed to the
+       viewport, so on a narrow window the percentage padding gets smaller than
+       they are tall and page content slides underneath them. Keep the top
+       padding at least as tall as that band. */
+    padding-top: max(4%, var(--corner-control-clearance));
     background-color: var(--bg-color);
     color: var(--text-color);
 }
