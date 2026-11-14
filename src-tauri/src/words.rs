@@ -37,58 +37,6 @@ pub struct WordInput {
 }
 
 #[tauri::command]
-pub async fn fetch_words(list_id: i32, remote: bool) -> Result<Vec<Word>, String> {
-    if remote {
-        let body = remote_get(
-            "search.php",
-            &[
-                ("list_id", list_id.to_string()),
-                ("string", String::new()),
-                ("tag_ids", String::new()),
-                ("untagged", "1".to_string()),
-            ],
-        )
-        .await?;
-        return parse_words(&body, list_id);
-    }
-    let conn = Connection::open(DATABASE_FILE).map_err(|e| e.to_string())?;
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, list_id, word, meaning, nature, pronunciation, comment, example, hint \
-             FROM words WHERE list_id=?1 ORDER BY word COLLATE NOCASE",
-        )
-        .map_err(|e| e.to_string())?;
-    let rows = stmt
-        .query_map([list_id], |r| {
-            Ok(Word {
-                id: r.get(0)?,
-                list_id: r.get(1)?,
-                word: r.get::<_, Option<String>>(2)?.unwrap_or_default(),
-                meaning: r.get::<_, Option<String>>(3)?.unwrap_or_default(),
-                nature: r.get::<_, Option<String>>(4)?.unwrap_or_default(),
-                pronunciation: r.get::<_, Option<String>>(5)?.unwrap_or_default(),
-                comment: r.get::<_, Option<String>>(6)?.unwrap_or_default(),
-                example: r.get::<_, Option<String>>(7)?.unwrap_or_default(),
-                hint: r.get::<_, Option<String>>(8)?.unwrap_or_default(),
-                tag_ids: vec![],
-            })
-        })
-        .map_err(|e| e.to_string())?;
-    let mut words = rows
-        .collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|e| e.to_string())?;
-    for word in &mut words {
-        word.tag_ids = conn
-            .prepare("SELECT tag_id FROM words_tags WHERE word_id=?1")
-            .map_err(|e| e.to_string())?
-            .query_map([word.id], |r| r.get(0))
-            .map_err(|e| e.to_string())?
-            .collect::<rusqlite::Result<Vec<i32>>>()
-            .map_err(|e| e.to_string())?;
-    }
-    Ok(words)
-}
-#[tauri::command]
 pub async fn fetch_word(list_id: i32, word_id: i32, remote: bool) -> Result<Word, String> {
     if remote {
         let body = remote_get(
@@ -209,7 +157,7 @@ pub async fn save_word(word: WordInput) -> Result<(), String> {
         }
         let client = auth::get_http_client().clone();
         let response = client
-            .post(auth::server_url(auth::PHP_API_ROOT) + endpoint)
+            .post(auth::api_url() + endpoint)
             .form(&fields)
             .send()
             .await
@@ -217,14 +165,17 @@ pub async fn save_word(word: WordInput) -> Result<(), String> {
         let status = response.status();
         let text = response.text().await.map_err(|e| e.to_string())?;
         if !status.is_success() {
-            return Err(if text.trim().is_empty() {
-                format!("Server returned {status}.")
-            } else {
-                text
+            // The endpoint answers {error} with the status that carries the
+            // meaning, so surface that message rather than the raw body.
+            return Err(match serde_json::from_str::<serde_json::Value>(&text) {
+                Ok(value) => value
+                    .get("error")
+                    .and_then(|e| e.as_str())
+                    .map(str::to_string)
+                    .unwrap_or_else(|| format!("Server returned {status}.")),
+                Err(_) if text.trim().is_empty() => format!("Server returned {status}."),
+                Err(_) => text,
             });
-        }
-        if !text.trim().is_empty() {
-            return Err(text);
         }
         return Ok(());
     }
@@ -304,7 +255,7 @@ fn parse_remote_word(body: &str, list_id: i32, word_id: i32) -> Result<Word, Str
 }
 
 async fn remote_get(endpoint: &str, params: &[(&str, String)]) -> Result<String, String> {
-    let url = format!("{}{}", auth::server_url(auth::PHP_API_ROOT), endpoint);
+    let url = format!("{}{}", auth::api_url(), endpoint);
     let client = auth::get_http_client().clone();
     let response = client
         .get(url)
@@ -317,37 +268,10 @@ async fn remote_get(endpoint: &str, params: &[(&str, String)]) -> Result<String,
     }
     response.text().await.map_err(|e| e.to_string())
 }
-fn parse_words(body: &str, list_id: i32) -> Result<Vec<Word>, String> {
-    let lines = body.lines().collect::<Vec<_>>();
-    if lines.is_empty() {
-        return Ok(Vec::new());
-    }
-    if lines.len() % 9 != 0 {
-        return Err("Invalid word list response.".into());
-    }
-    Ok(lines
-        .chunks_exact(9)
-        .map(|c| Word {
-            id: c[0].parse().unwrap_or(0),
-            list_id,
-            word: c[1].into(),
-            meaning: c[2].into(),
-            pronunciation: c[3].into(),
-            nature: c[4].into(),
-            comment: c[5].into(),
-            example: c[6].into(),
-            hint: c[7].into(),
-            tag_ids: c[8]
-                .split(", ")
-                .filter_map(|s| s.trim().parse().ok())
-                .collect(),
-        })
-        .collect())
-}
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_remote_word, parse_tags, parse_words};
+    use super::{parse_remote_word, parse_tags};
 
     #[test]
     fn remote_word_response_without_list_id_is_completed() {
@@ -365,37 +289,9 @@ mod tests {
     }
 
     #[test]
-    fn word_list_response_is_read_in_nine_line_chunks() {
-        let body = "1\nchat\ncat\nsha\nn\ncomment\nexample\nhint\n2, 3\n\
-                    2\nchien\ndog\nshya\nn\n\n\n\n4";
-        let words = parse_words(body, 4).expect("valid word list");
-        assert_eq!(words.len(), 2);
-
-        assert_eq!(words[0].id, 1);
-        assert_eq!(words[0].list_id, 4);
-        assert_eq!(words[0].word, "chat");
-        assert_eq!(words[0].meaning, "cat");
-        assert_eq!(words[0].pronunciation, "sha");
-        assert_eq!(words[0].nature, "n");
-        assert_eq!(words[0].comment, "comment");
-        assert_eq!(words[0].example, "example");
-        assert_eq!(words[0].hint, "hint");
-        assert_eq!(words[0].tag_ids, vec![2, 3]);
-
-        assert_eq!(words[1].id, 2);
-        assert_eq!(words[1].word, "chien");
-        assert_eq!(words[1].tag_ids, vec![4]);
-    }
-
-    #[test]
-    fn word_list_response_with_a_partial_chunk_is_rejected() {
-        let body = "1\nchat\ncat\nsha\nn\ncomment\nexample\nhint\n";
-        assert!(parse_words(body, 4).is_err());
-    }
-
-    #[test]
-    fn tag_list_response_is_read_in_two_line_chunks() {
-        let tags = parse_tags("2\nNouns\n3\nVerbs\n").expect("valid tag list");
+    fn tag_list_response_is_read_as_json() {
+        let tags = parse_tags(r#"[{"id":2,"name":"Nouns"},{"id":3,"name":"Verbs"}]"#)
+            .expect("valid tag list");
         assert_eq!(tags.len(), 2);
         assert_eq!(tags[0].id, 2);
         assert_eq!(tags[0].name, "Nouns");
@@ -404,26 +300,11 @@ mod tests {
     }
 
     #[test]
-    fn tag_list_response_with_an_odd_line_count_is_rejected() {
+    fn tag_list_response_that_is_not_json_is_rejected() {
         assert!(parse_tags("2\nNouns\n3\n").is_err());
     }
 }
 
 fn parse_tags(body: &str) -> Result<Vec<WordTag>, String> {
-    let lines = body
-        .lines()
-        .filter(|l| !l.trim().is_empty())
-        .collect::<Vec<_>>();
-    if lines.len() % 2 != 0 {
-        return Err("Invalid tag list response.".into());
-    }
-    Ok(lines
-        .chunks_exact(2)
-        .filter_map(|c| {
-            Some(WordTag {
-                id: c[0].parse().ok()?,
-                name: c[1].into(),
-            })
-        })
-        .collect())
+    serde_json::from_str(body).map_err(|e| format!("Invalid tag list response: {}", e))
 }

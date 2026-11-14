@@ -1,7 +1,12 @@
 function installQuizTagFilter({ container, fetchTags, onSelectionChange, labels = {} }) {
     if (!container) return Promise.resolve();
-    container.addEventListener('focusout', event => {
-        if (!container.contains(event.relatedTarget)) container.open = false;
+    // The panel closes when a click lands outside it, and only then: choosing a
+    // tag must leave it open so several can be picked in a row. Focus cannot
+    // stand in for that, because clicking a label's text does not move focus to
+    // its checkbox in every browser, and a focus-based rule closes the panel on
+    // the very click that was choosing a tag.
+    document.addEventListener('pointerdown', event => {
+        if (!container.contains(event.target)) container.open = false;
     });
 
     return Promise.resolve()

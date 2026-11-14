@@ -22,31 +22,14 @@ async fn fetch_vocab_tests(remote: bool) -> Result<Vec<Test>, String> {
     if remote {
         // Fetch vocab lists from the remote server
         let client = auth::build_http_client(false);
-        let url = format!("{}get_lists.php", auth::server_url(auth::PHP_API_ROOT));
+        let url = format!("{}get_lists.php", auth::api_url());
 
         match client.get(&url).send().await {
-            Ok(response) => match response.text().await {
-                Ok(body) => {
-                    let lines: Vec<&str> = body.trim().split('\n').collect();
-                    let mut tests = Vec::new();
-
-                    for chunk in lines.chunks(5) {
-                        if chunk.len() == 5 {
-                            let test = Test {
-                                id: chunk[0].parse().unwrap_or(0),
-                                name: chunk[1].to_string(),
-                                src: chunk[2].to_string(),
-                                dst: chunk[3].to_string(),
-                                flag: chunk[4].to_string(),
-                            };
-                            tests.push(test);
-                        }
-                    }
-
-                    Ok(tests)
-                }
-                Err(e) => Err(format!("Error reading server response: {}", e)),
+            Ok(response) if response.status().is_success() => match response.json::<Vec<Test>>().await {
+                Ok(tests) => Ok(tests),
+                Err(e) => Err(format!("Invalid list response from server: {}", e)),
             },
+            Ok(response) => Err(format!("Server returned {}", response.status())),
             Err(e) => Err(format!("Error sending request: {}", e)),
         }
     } else {
@@ -118,9 +101,14 @@ async fn fetch_quiz_question(
     list_size_limit: u32,
     remote: bool,
     selected_tags: Vec<i32>,
-) -> Result<String, String> {
+) -> Result<auth::QuizQuestion, String> {
     if remote {
-        return auth::fetch_quiz_question(list_id, list_size_limit).await;
+        return auth::fetch_quiz_question(
+            list_id,
+            list_size_limit,
+            &selected_tags,
+        )
+        .await;
     }
 
     let conn = Connection::open(DATABASE_FILE)
@@ -155,18 +143,26 @@ async fn fetch_quiz_question(
         .next()
         .map_err(|e| format!("Error reading local question: {e}"))?
         .ok_or_else(|| "The selected local vocabulary list is empty.".to_string())?;
-    let mut fields = vec![row
-        .get::<_, i64>(0)
-        .map_err(|e| format!("Error reading local word ID: {e}"))?
-        .to_string()];
-    for i in 1..8 {
-        fields.push(
-            row.get::<_, Option<String>>(i)
-                .map(|v| v.unwrap_or_default())
-                .map_err(|e| format!("Error reading local word field: {e}"))?,
-        );
-    }
-    Ok(fields.join("\n"))
+    Ok(auth::QuizQuestion {
+        id: row
+            .get::<_, i64>(0)
+            .map_err(|e| format!("Error reading local word ID: {e}"))? as i32,
+        word: local_field(&row, 1)?,
+        meaning: local_field(&row, 2)?,
+        nature: local_field(&row, 3)?,
+        comment: local_field(&row, 4)?,
+        example: local_field(&row, 5)?,
+        pronunciation: local_field(&row, 6)?,
+        hint: local_field(&row, 7)?,
+        tag_ids: Vec::new(),
+    })
+}
+
+/// One nullable text column of a local word row as an owned string.
+fn local_field(row: &rusqlite::Row, index: usize) -> Result<String, String> {
+    row.get::<_, Option<String>>(index)
+        .map(|value| value.unwrap_or_default())
+        .map_err(|e| format!("Error reading local word field: {e}"))
 }
 
 #[tauri::command]
@@ -216,7 +212,6 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             fetch_vocab_tests,
-            words::fetch_words,
             words::fetch_word,
             words::fetch_word_tags,
             words::save_word,

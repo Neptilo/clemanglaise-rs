@@ -21,7 +21,6 @@ pub const SERVER_DOMAIN: &str = match option_env!("CLEMANGLAISE_SERVER_URL") {
     None => "https://neptilo.com",
 };
 const API_ROOT: &str = "/languages/clemanglaise/";
-pub const PHP_API_ROOT: &str = "/php/clemanglaise/";
 
 pub fn server_url(path: &str) -> String {
     format!("{}{}", SERVER_DOMAIN.trim_end_matches('/'), path)
@@ -180,8 +179,22 @@ pub struct QuizTag {
     pub name: String,
 }
 
+/// One quiz question as the quiz screen consumes it.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QuizQuestion {
+    pub id: i32,
+    pub word: String,
+    pub meaning: String,
+    pub nature: String,
+    pub comment: String,
+    pub example: String,
+    pub pronunciation: String,
+    pub hint: String,
+    pub tag_ids: Vec<i32>,
+}
+
 pub async fn fetch_quiz_tags(list_id: u32) -> Result<Vec<QuizTag>, String> {
-    let url = format!("{}find_used_tags.php?list_id={}", server_url(PHP_API_ROOT), list_id);
+    let url = format!("{}find_used_tags.php?list_id={}", api_url(), list_id);
     let response = {
         let client = get_http_client();
         client.get(&url).send()
@@ -190,21 +203,34 @@ pub async fn fetch_quiz_tags(list_id: u32) -> Result<Vec<QuizTag>, String> {
     if !response.status().is_success() {
         return Err(format!("Error fetching quiz tags: server returned {}", response.status()));
     }
-    let body = response.text().await.map_err(|e| format!("Error reading tag response: {}", e))?;
-    let lines = body.lines().filter(|line| !line.is_empty()).collect::<Vec<_>>();
-    if lines.len() % 2 != 0 || lines.iter().step_by(2).any(|id| id.trim().parse::<i32>().is_err()) {
-        return Err(format!("Invalid tag response from server: {}", body));
-    }
-    Ok(lines.chunks_exact(2).map(|pair| QuizTag {
-        id: pair[0].trim().parse().expect("validated tag ID"),
-        name: pair[1].trim().to_string(),
-    }).collect())
+    response
+        .json::<Vec<QuizTag>>()
+        .await
+        .map_err(|e| format!("Invalid tag response from server: {}", e))
 }
 
-pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<String, String> {
+pub async fn fetch_quiz_question(
+    list_id: u32,
+    list_size_limit: u32,
+    selected_tags: &[i32],
+) -> Result<QuizQuestion, String> {
+    // The endpoint reads `untagged` as a boolean, and an empty value would be
+    // its own flag, so both are always sent explicitly. Tag 0 is the "without
+    // any tags" option in the filter, not a real tag.
+    let untagged = selected_tags.contains(&0);
+    let tag_ids = selected_tags
+        .iter()
+        .filter(|id| **id > 0)
+        .map(i32::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
     let url = format!(
-        "{}find_word.php?list_id={}&list_size_limit={}",
-        api_url(), list_id, list_size_limit
+        "{}find_word.php?list_id={}&list_size_limit={}&tag_ids={}&untagged={}",
+        api_url(),
+        list_id,
+        list_size_limit,
+        tag_ids,
+        untagged
     );
 
     let response = {
@@ -220,9 +246,9 @@ pub async fn fetch_quiz_question(list_id: u32, list_size_limit: u32) -> Result<S
     }
 
     response
-        .text()
+        .json::<QuizQuestion>()
         .await
-        .map_err(|e| format!("Error reading response: {}", e))
+        .map_err(|e| format!("Invalid question response from server: {}", e))
 }
 
 /**
@@ -248,6 +274,12 @@ pub async fn submit_quiz_answer(correct: bool, word_id: u32) -> Result<String, S
     let response = response
         .await
         .map_err(|e| map_request_error("Error submitting answer", e))?;
+
+    // A missing session answers 401, so the status carries the failure and the
+    // caller does not inspect the body.
+    if !response.status().is_success() {
+        return Err(format!("Error submitting answer: server returned {}", response.status()));
+    }
 
     response
         .text()

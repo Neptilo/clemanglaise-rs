@@ -254,35 +254,21 @@ function collectQuizElements() {
 // ============================================================================
 
 /**
- * Parse and display quiz question data from find_word.php response
- * @param {string} responseText - Newline-delimited response from find_word.php
+ * Populate the quiz elements from a question and return its word id, which the
+ * score submission needs.
+ * @param {Object} wordData - The question record
  * @param {Object} elements - DOM elements to populate
  * @returns {number} The word ID for score submission
  */
-function processQuestionResponse(responseText, elements) {
-    // Response format (newline-delimited):
-    // 0: word_id
-    // 1: word (source language)
-    // 2: meaning (target language)
-    // 3: part of speech
-    // 4: comment
-    // 5: example
-    // 6: pronunciation
-    // 7: hint
-    // 8: tags (optional)
-
-    // reverse + pops is probably faster than shifts
-    const wordData = responseText.split('\n').reverse()
-
-    const wordId = Number(wordData.pop())
-    const word = wordData.pop()
-    const meaning = wordData.pop()
-    const partOfSpeech = wordData.pop()
-    const comment = wordData.pop()
-    const example = wordData.pop()
-    const pronunciation = wordData.pop()
-    const hint = wordData.pop()
-    // tags = wordData.pop()
+function processQuestionResponse(wordData, elements) {
+    const wordId = Number(wordData.id)
+    const word = wordData.word || ''
+    const meaning = wordData.meaning || ''
+    const partOfSpeech = wordData.nature || ''
+    const comment = wordData.comment || ''
+    const example = wordData.example || ''
+    const pronunciation = wordData.pronunciation || ''
+    const hint = wordData.hint || ''
 
     // The expected answer is the pronunciation for the languages that ask for
     // one, so that no native keyboard is needed.
@@ -290,25 +276,28 @@ function processQuestionResponse(responseText, elements) {
         ? pronunciation
         : meaning
 
+    // A line break is a new entry inside these fields, so it is rendered.
+    const render = (value) => value.replace(/\r?\n/g, '<br/>')
+
     // Populate DOM elements
     if (elements.wordElems && elements.wordElems.length > 0) {
         for (let i = 0; i < elements.wordElems.length; i++) {
-            elements.wordElems[i].innerHTML = word;
+            elements.wordElems[i].innerHTML = render(word);
         }
     }
     // The block is about the meaning: it fills the large left column. The
     // word's own script goes on the headline line with its pronunciation, so
     // nothing is printed twice.
-    if (elements.meaningElem) elements.meaningElem.innerHTML = meaning;
-    if (elements.partOfSpeechElem) elements.partOfSpeechElem.innerHTML = partOfSpeech;
-    if (elements.commentElem) elements.commentElem.innerHTML = comment;
-    if (elements.exampleElem) elements.exampleElem.innerHTML = example;
+    if (elements.meaningElem) elements.meaningElem.innerHTML = render(meaning);
+    if (elements.partOfSpeechElem) elements.partOfSpeechElem.innerHTML = render(partOfSpeech);
+    if (elements.commentElem) elements.commentElem.innerHTML = render(comment);
+    if (elements.exampleElem) elements.exampleElem.innerHTML = render(example);
     // The answer the player's input is compared with: the pronunciation for the
     // languages that ask for one, the meaning otherwise. It is carried by a
     // hidden element, so the block can show the meaning without comparing
     // against it.
     if (elements.expectedAnswerElem) {
-        elements.expectedAnswerElem.innerHTML = correctAnswer;
+        elements.expectedAnswerElem.innerHTML = render(correctAnswer);
     }
     if (elements.pronunciationElem) {
         const hasPronunciation = pronunciation !== "";
@@ -319,7 +308,7 @@ function processQuestionResponse(responseText, elements) {
         // brackets behind.
         elements.pronunciationElem.hidden = !hasPronunciation;
     }
-    if (elements.hintElem) elements.hintElem.innerHTML = hint;
+    if (elements.hintElem) elements.hintElem.innerHTML = render(hint);
 
     return wordId;
 }

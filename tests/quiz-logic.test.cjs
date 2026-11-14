@@ -283,17 +283,17 @@ test("a rounded shrink keeps the pool usable instead of collapsing it", () => {
 });
 
 test("processQuestionResponse fills elements and returns the word id", () => {
-    const body = [
-        "42",
-        "chat",
-        "cat",
-        "noun",
-        "a comment",
-        "an example",
-        "sha",
-        "a hint",
-        "",
-    ].join("\n");
+    const body = {
+        id: 42,
+        word: "chat",
+        meaning: "cat",
+        nature: "noun",
+        comment: "a comment",
+        example: "an example",
+        pronunciation: "sha",
+        hint: "a hint",
+        tag_ids: [],
+    };
 
     const wordElems = [{ innerHTML: "" }, { innerHTML: "" }];
     const elements = {
@@ -320,7 +320,17 @@ test("processQuestionResponse fills elements and returns the word id", () => {
 });
 
 test("processQuestionResponse brackets the pronunciation the way the language is written", () => {
-    const body = ["7", "كبير", "big", "adj", "", "", "kabīr", "", ""].join("\n");
+    const body = {
+        id: 7,
+        word: "كبير",
+        meaning: "big",
+        nature: "adj",
+        comment: "",
+        example: "",
+        pronunciation: "kabīr",
+        hint: "",
+        tag_ids: [],
+    };
 
     const makeElements = (language) => ({
         wordElems: [],
@@ -344,7 +354,17 @@ test("processQuestionResponse brackets the pronunciation the way the language is
 test("processQuestionResponse hides the brackets when there is no pronunciation", () => {
     // An empty pronunciation field must not render as "[]" or leave the
     // separator dangling after the part of speech.
-    const body = ["9", "chat", "cat", "noun", "", "", "", "", ""].join("\n");
+    const body = {
+        id: 9,
+        word: "chat",
+        meaning: "cat",
+        nature: "noun",
+        comment: "",
+        example: "",
+        pronunciation: "",
+        hint: "",
+        tag_ids: [],
+    };
     const elements = {
         wordElems: [],
         meaningElem: { innerHTML: "" },
@@ -359,17 +379,17 @@ test("processQuestionResponse hides the brackets when there is no pronunciation"
 });
 
 test("processQuestionResponse answers with the pronunciation in the languages that ask for it", () => {
-    const body = [
-        "7",
-        "كبير",
-        "big",
-        "adj",
-        "",
-        "",
-        "kabīr",
-        "",
-        "",
-    ].join("\n");
+    const body = {
+        id: 7,
+        word: "كبير",
+        meaning: "big",
+        nature: "adj",
+        comment: "",
+        example: "",
+        pronunciation: "kabīr",
+        hint: "",
+        tag_ids: [],
+    };
 
     const makeElements = (language) => ({
         wordElems: [],

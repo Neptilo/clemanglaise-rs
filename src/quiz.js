@@ -75,7 +75,7 @@ async function initQuiz() {
 
     loadNewQuestion = async function () {
         try {
-            const responseText = await window.__TAURI__.core.invoke(
+            const question = await window.__TAURI__.core.invoke(
                 'fetch_quiz_question',
                 {
                     listId: listId,
@@ -85,7 +85,7 @@ async function initQuiz() {
                 },
             );
 
-            quizState.wordId = processQuestionResponse(responseText, {
+            quizState.wordId = processQuestionResponse(question, {
                 ...quizElements,
                 language: dstCode,
             });
